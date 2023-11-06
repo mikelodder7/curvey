@@ -6,10 +6,10 @@ package curvey
 
 import (
 	"bytes"
-	"crypto/sha512"
 	"crypto/subtle"
 	"fmt"
 	"github.com/bwesterb/go-ristretto"
+	"github.com/mikelodder7/curvey/native"
 	"io"
 	"math/big"
 
@@ -18,6 +18,21 @@ import (
 	ed "github.com/bwesterb/go-ristretto/edwards25519"
 
 	"github.com/mikelodder7/curvey/internal"
+)
+
+var (
+	a, _ = new(field.Element).SetBytes([]byte{
+		6, 109, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	})
+	minA        = new(field.Element).Negate(a)
+	edZero      = new(field.Element).Zero()
+	edOne       = new(field.Element).One()
+	minOne      = new(field.Element).Negate(edOne)
+	two         = new(field.Element).Add(edOne, edOne)
+	invsqrtD, _ = new(field.Element).SetBytes([]byte{
+		6, 126, 69, 255, 170, 4, 110, 204, 130, 26, 125, 75, 209, 211, 161, 197,
+		126, 79, 252, 3, 220, 8, 123, 210, 187, 6, 160, 96, 244, 237, 38, 15,
+	})
 )
 
 type ScalarEd25519 struct {
@@ -395,15 +410,21 @@ func (*PointEd25519) Hash(b []byte) Point {
 	// Perform hashing to the group using the Elligator2 map
 	//
 	// See https://tools.ietf.org/html/draft-irtf-cfrg-hash-to-curve-11#section-6.7.1
-	h := sha512.Sum512(b)
-	var res [32]byte
-	copy(res[:], h[:32])
-	signBit := (res[31] & 0x80) >> 7
+	dst := []byte("edwards25519_XMD:SHA-512_ELL2_RO_")
+	u := native.ExpandMsgXmd(native.EllipticPointHasherSha512(), b, dst, 96)
+	var t [64]byte
+	copy(t[:48], internal.ReverseScalarBytes(u[:48]))
+	u0, _ := new(field.Element).SetWideBytes(t[:])
+	copy(t[:48], internal.ReverseScalarBytes(u[48:96]))
+	u1, _ := new(field.Element).SetWideBytes(t[:])
 
-	fe := new(ed.FieldElement).SetBytes(&res).BytesInto(&res)
-	m1 := elligatorEncode(fe)
-
-	return toEdwards(m1, signBit)
+	p0 := mapToEdwards(u0)
+	p1 := mapToEdwards(u1)
+	p0.Add(p0, p1)
+	p0.MultByCofactor(p0)
+	return &PointEd25519{
+		value: p0,
+	}
 }
 
 func (*PointEd25519) Identity() Point {
@@ -527,58 +548,6 @@ func (p *PointEd25519) Set(x, y *big.Int) (Point, error) {
 	yElem.BytesInto(&data)
 	copy(affine[32:], data[:])
 	return p.FromAffineUncompressed(affine[:])
-}
-
-// sqrtRatio sets r to the non-negative square root of the ratio of u and v.
-//
-// If u/v is square, sqrtRatio returns r and 1. If u/v is not square, SqrtRatio
-// sets r according to Section 4.3 of draft-irtf-cfrg-ristretto255-decaf448-00,
-// and returns r and 0.
-func sqrtRatio(u, v *ed.FieldElement) (r *ed.FieldElement, wasSquare bool) {
-	sqrtM1 := ed.FieldElement{
-		533094393274173, 2016890930128738, 18285341111199,
-		134597186663265, 1486323764102114,
-	}
-	a := new(ed.FieldElement)
-	b := new(ed.FieldElement)
-	r = new(ed.FieldElement)
-
-	// r = (u * v3) * (u * v7)^((p-5)/8)
-	v2 := a.Square(v)
-	uv3 := b.Mul(u, b.Mul(v2, v))
-	uv7 := a.Mul(uv3, a.Square(v2))
-	r.Mul(uv3, r.Exp22523(uv7))
-
-	check := a.Mul(v, a.Square(r)) // check = v * r^2
-
-	uNeg := b.Neg(u)
-	correctSignSqrt := check.Equals(u)
-	flippedSignSqrt := check.Equals(uNeg)
-	flippedSignSqrtI := check.Equals(uNeg.Mul(uNeg, &sqrtM1))
-
-	rPrime := b.Mul(r, &sqrtM1) // r_prime = SQRT_M1 * r
-	// r = CT_SELECT(r_prime IF flipped_sign_sqrt | flipped_sign_sqrt_i ELSE r)
-	cselect(r, rPrime, r, flippedSignSqrt || flippedSignSqrtI)
-
-	r.Abs(r) // Choose the nonnegative square root.
-	return r, correctSignSqrt || flippedSignSqrt
-}
-
-// cselect sets v to a if cond == 1, and to b if cond == 0.
-func cselect(v, a, b *ed.FieldElement, cond bool) *ed.FieldElement {
-	const mask64Bits uint64 = (1 << 64) - 1
-
-	m := uint64(0)
-	if cond {
-		m = mask64Bits
-	}
-
-	v[0] = (m & a[0]) | (^m & b[0])
-	v[1] = (m & a[1]) | (^m & b[1])
-	v[2] = (m & a[2]) | (^m & b[2])
-	v[3] = (m & a[3]) | (^m & b[3])
-	v[4] = (m & a[4]) | (^m & b[4])
-	return v
 }
 
 func (p *PointEd25519) ToAffineCompressed() []byte {
@@ -729,83 +698,76 @@ func (*PointEd25519) SetEdwardsPoint(pt *edwards25519.Point) *PointEd25519 {
 	return &PointEd25519{value: edwards25519.NewIdentityPoint().Set(pt)}
 }
 
-// Attempt to convert to an `EdwardsPoint`, using the supplied
-// choice of sign for the `EdwardsPoint`.
-//   - `sign`: a `u8` donating the desired sign of the resulting
-//     `EdwardsPoint`.  `0` denotes positive and `1` negative.
-func toEdwards(u *ed.FieldElement, sign byte) *PointEd25519 {
-	one := new(ed.FieldElement).SetOne()
-	// To decompress the Montgomery u coordinate to an
-	// `EdwardsPoint`, we apply the birational map to obtain the
-	// Edwards y coordinate, then do Edwards decompression.
-	//
-	// The birational map is y = (u-1)/(u+1).
-	//
-	// The exceptional points are the zeros of the denominator,
-	// i.e., u = -1.
-	//
-	// But when u = -1, v^2 = u*(u^2+486662*u+1) = 486660.
-	//
-	// Since this is nonsquare mod p, u = -1 corresponds to a point
-	// on the twist, not the curve, so we can reject it early.
-	if u.Equals(new(ed.FieldElement).Neg(one)) {
-		return nil
-	}
-
-	// y = (u-1)/(u+1)
-	yLhs := new(ed.FieldElement).Sub(u, one)
-	yRhs := new(ed.FieldElement).Add(u, one)
-	yInv := new(ed.FieldElement).Inverse(yRhs)
-	y := new(ed.FieldElement).Mul(yLhs, yInv)
-	yBytes := y.Bytes()
-	yBytes[31] ^= sign << 7
-
-	pt, err := edwards25519.NewIdentityPoint().SetBytes(yBytes[:])
-	if err != nil {
-		return nil
-	}
-	pt.MultByCofactor(pt)
-	return &PointEd25519{value: pt}
+func mapToEdwards(e *field.Element) *edwards25519.Point {
+	u, v := elligator2Montgomery(e)
+	x, y := montgomeryToEdwards(u, v)
+	return affineToEdwards(x, y)
 }
 
-// Perform the Elligator2 mapping to a Montgomery point encoded as a 32 byte value
-//
-// See <https://tools.ietf.org/html/draft-irtf-cfrg-hash-to-curve-11#section-6.7.1>
-func elligatorEncode(r0 *ed.FieldElement) *ed.FieldElement {
-	montgomeryA := &ed.FieldElement{
-		486662, 0, 0, 0, 0,
+func elligator2Montgomery(e *field.Element) (x, y *field.Element) {
+	t1 := new(field.Element).Square(e) // u^2
+	t1.Multiply(t1, two)               // t1 = 2u^2
+	e1 := t1.Equal(minOne)             //
+	t1.Swap(edZero, e1)                // if 2u^2 == -1, t1 = 0
+
+	x1 := new(field.Element).Add(t1, edOne) // t1 + 1
+	x1.Invert(x1)                           // 1 / (t1 + 1)
+	x1.Multiply(x1, minA)                   // x1 = -A / (t1 + 1)
+
+	gx1 := new(field.Element).Add(x1, a) // x1 + A
+	gx1.Multiply(gx1, x1)                // x1 * (x1 + A)
+	gx1.Add(gx1, edOne)                  // x1 * (x1 + A) + 1
+	gx1.Multiply(gx1, x1)                // x1 * (x1 * (x1 + A) + 1)
+
+	x2 := new(field.Element).Negate(x1) // -x1
+	x2.Subtract(x2, a)                  // -x2 - A
+
+	gx2 := new(field.Element).Multiply(t1, gx1) // t1 * gx1
+
+	root1, _isSquare := new(field.Element).SqrtRatio(gx1, edOne) // root1 = (+) sqrt(gx1)
+	negRoot1 := new(field.Element).Negate(root1)                 // negRoot1 = (-) sqrt(gx1)
+	root2, _ := new(field.Element).SqrtRatio(gx2, edOne)         // root2 = (+) sqrt(gx2)
+
+	x = new(field.Element)
+	y = new(field.Element)
+
+	x.Set(x2)
+	y.Set(root2)
+
+	x.Swap(x1, _isSquare)
+	y.Swap(negRoot1, _isSquare)
+
+	// if gx1 is square, set the point to (x1, -root1)
+	// if not, set the point to (x2, +root2)
+	//if _isSquare == 1 {
+	//	x = x1
+	//	y = negRoot1 // set sgn0(y) == 1, i.e. negative
+	//} else {
+	//	x = x2
+	//	y = root2 // set sgn0(y) == 0, i.e. positive
+	//}
+
+	return x, y
+}
+
+func montgomeryToEdwards(u, v *field.Element) (x, y *field.Element) {
+	x = new(field.Element).Invert(v)
+	x.Multiply(x, u)
+	x.Multiply(x, invsqrtD)
+
+	u1 := new(field.Element).Subtract(u, edOne)
+	u2 := new(field.Element).Add(u, edOne)
+	y = u1.Multiply(u1, u2.Invert(u2))
+
+	return
+}
+
+func affineToEdwards(x, y *field.Element) *edwards25519.Point {
+	t := new(field.Element).Multiply(x, y)
+
+	p, err := new(edwards25519.Point).SetExtendedCoordinates(x, y, new(field.Element).One(), t)
+	if err != nil {
+		panic(err)
 	}
-	// montgomeryANeg is equal to -486662.
-	montgomeryANeg := &ed.FieldElement{
-		2251799813198567,
-		2251799813685247,
-		2251799813685247,
-		2251799813685247,
-		2251799813685247,
-	}
-	t := new(ed.FieldElement)
-	one := new(ed.FieldElement).SetOne()
-	// 2r^2
-	d1 := new(ed.FieldElement).Add(one, t.DoubledSquare(r0))
-	// A/(1+2r^2)
-	d := new(ed.FieldElement).Mul(montgomeryANeg, t.Inverse(d1))
-	dsq := new(ed.FieldElement).Square(d)
-	au := new(ed.FieldElement).Mul(montgomeryA, d)
-
-	inner := new(ed.FieldElement).Add(dsq, au)
-	inner.Add(inner, one)
-
-	// d^3 + Ad^2 + d
-	eps := new(ed.FieldElement).Mul(d, inner)
-	_, wasSquare := sqrtRatio(eps, one)
-
-	zero := new(ed.FieldElement).SetZero()
-	aTemp := new(ed.FieldElement).SetZero()
-	// 0 or A if non-square
-	cselect(aTemp, zero, montgomeryA, wasSquare)
-	// d, or d+A if non-square
-	u := new(ed.FieldElement).Add(d, aTemp)
-	// d or -d-A if non-square
-	cselect(u, u, new(ed.FieldElement).Neg(u), wasSquare)
-	return u
+	return p
 }

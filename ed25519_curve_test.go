@@ -204,7 +204,7 @@ func TestPointEd25519Random(t *testing.T) {
 	sc := ed25519.Point.Random(testRng())
 	s, ok := sc.(*PointEd25519)
 	require.True(t, ok)
-	expected := toRPt("6011540c6231421a70ced5f577432531f198d318facfaad6e52cc42fba6e6fc5")
+	expected := toRPt("da754457c0b28c8fca940da7ad67b5476208a73e8c65c3aab0b833c3b9b61346")
 	require.True(t, s.Equal(&PointEd25519{expected}))
 	// Try 25 random values
 	for i := 0; i < 25; i++ {
@@ -224,7 +224,7 @@ func TestPointEd25519Hash(t *testing.T) {
 	sc := ed25519.Point.Hash(b[:])
 	s, ok := sc.(*PointEd25519)
 	require.True(t, ok)
-	expected := toRPt("b4d75c3bb03ca644ab6c6d2a955c911003d8cfa719415de93a6b85eeb0c8dd97")
+	expected := toRPt("4838562f360e7087a5b2c6e867836ab6dd3b8d20c923eb2b535902739060bf09")
 	require.True(t, s.Equal(&PointEd25519{expected}))
 
 	// Fuzz test
