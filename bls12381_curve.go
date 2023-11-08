@@ -33,6 +33,12 @@ type ScalarBls12381Gt struct {
 	Value *bls12381.Gt
 }
 
+// PointBls12381Gt exists for convenience if a point is needed
+// for dealing with a scalar
+type PointBls12381Gt struct {
+	Value *bls12381.Gt
+}
+
 func (s *ScalarBls12381) Random(reader io.Reader) Scalar {
 	if reader == nil {
 		return nil
@@ -1060,10 +1066,13 @@ func (s *ScalarBls12381Gt) Sub(rhs Scalar) Scalar {
 }
 
 func (s *ScalarBls12381Gt) Mul(rhs Scalar) Scalar {
-	r, ok := rhs.(*ScalarBls12381Gt)
+	if rhs == nil {
+		return nil
+	}
+	r, ok := rhs.(*ScalarBls12381)
 	if ok {
 		return &ScalarBls12381Gt{
-			new(bls12381.Gt).Add(s.Value, r.Value),
+			new(bls12381.Gt).Mul(s.Value, r.Value),
 		}
 	} else {
 		return nil
@@ -1103,7 +1112,7 @@ func (s *ScalarBls12381Gt) BigInt() *big.Int {
 }
 
 func (*ScalarBls12381Gt) Point() Point {
-	return &PointBls12381G1{Value: new(bls12381.G1).Identity()}
+	return new(PointBls12381Gt).Identity()
 }
 
 func (s *ScalarBls12381Gt) Bytes() []byte {
@@ -1145,4 +1154,161 @@ func (s *ScalarBls12381Gt) Clone() Scalar {
 	return &ScalarBls12381Gt{
 		Value: new(bls12381.Gt).Set(s.Value),
 	}
+}
+
+func (p *PointBls12381Gt) Random(reader io.Reader) Point {
+	s := new(ScalarBls12381Gt).Random(reader).(*ScalarBls12381Gt)
+	return &PointBls12381Gt{Value: s.Value}
+}
+
+func (p *PointBls12381Gt) Hash(bytes []byte) Point {
+	s := new(ScalarBls12381Gt).Hash(bytes).(*ScalarBls12381Gt)
+	return &PointBls12381Gt{Value: s.Value}
+}
+
+func (p *PointBls12381Gt) Identity() Point {
+	return &PointBls12381Gt{new(bls12381.Gt)}
+}
+
+func (p *PointBls12381Gt) Generator() Point {
+	return &PointBls12381Gt{new(bls12381.Gt).SetOne()}
+}
+
+func (p *PointBls12381Gt) IsIdentity() bool {
+	return p.Value.IsOne() == 1
+}
+
+func (p *PointBls12381Gt) IsNegative() bool {
+	// Gt is unitary so there is no such thing as negative really
+	return false
+}
+
+func (p *PointBls12381Gt) IsOnCurve() bool {
+	return true
+}
+
+func (p *PointBls12381Gt) Double() Point {
+	return &PointBls12381Gt{
+		new(bls12381.Gt).Double(p.Value),
+	}
+}
+
+func (p *PointBls12381Gt) Scalar() Scalar {
+	return new(ScalarBls12381).Zero()
+}
+
+func (p *PointBls12381Gt) Neg() Point {
+	return &PointBls12381Gt{
+		new(bls12381.Gt).Neg(p.Value),
+	}
+}
+
+func (p *PointBls12381Gt) Add(rhs Point) Point {
+	if rhs == nil {
+		return nil
+	}
+	r, ok := rhs.(*PointBls12381Gt)
+	if ok {
+		return &PointBls12381Gt{new(bls12381.Gt).Add(p.Value, r.Value)}
+	} else {
+		return nil
+	}
+}
+
+func (p *PointBls12381Gt) Sub(rhs Point) Point {
+	if rhs == nil {
+		return nil
+	}
+	r, ok := rhs.(*PointBls12381Gt)
+	if ok {
+		return &PointBls12381Gt{new(bls12381.Gt).Sub(p.Value, r.Value)}
+	} else {
+		return nil
+	}
+}
+
+func (p *PointBls12381Gt) Mul(rhs Scalar) Point {
+	if rhs == nil {
+		return nil
+	}
+	r, ok := rhs.(*ScalarBls12381)
+	if ok {
+		return &PointBls12381Gt{new(bls12381.Gt).Mul(p.Value, r.Value)}
+	} else {
+		return nil
+	}
+}
+
+func (p *PointBls12381Gt) Equal(rhs Point) bool {
+	r, ok := rhs.(*PointBls12381Gt)
+	if ok {
+		return p.Value.Equal(r.Value) == 1
+	} else {
+		return false
+	}
+}
+
+func (p *PointBls12381Gt) Set(x, y *big.Int) (Point, error) {
+	// Not implemented
+	return nil, nil
+}
+
+func (p *PointBls12381Gt) ToAffineCompressed() []byte {
+	bytes := p.Value.Bytes()
+	return bytes[:]
+}
+
+func (p *PointBls12381Gt) ToAffineUncompressed() []byte {
+	bytes := p.Value.Bytes()
+	return bytes[:]
+}
+
+func (p *PointBls12381Gt) FromAffineCompressed(bytes []byte) (Point, error) {
+	var b [bls12381.GtFieldBytes]byte
+	copy(b[:], bytes)
+	ss, isCanonical := new(bls12381.Gt).SetBytes(&b)
+	if isCanonical == 0 {
+		return nil, fmt.Errorf("invalid bytes")
+	}
+	return &PointBls12381Gt{ss}, nil
+}
+
+func (p *PointBls12381Gt) FromAffineUncompressed(bytes []byte) (Point, error) {
+	var b [bls12381.GtFieldBytes]byte
+	copy(b[:], bytes)
+	ss, isCanonical := new(bls12381.Gt).SetBytes(&b)
+	if isCanonical == 0 {
+		return nil, fmt.Errorf("invalid bytes")
+	}
+	return &PointBls12381Gt{ss}, nil
+}
+
+func (p *PointBls12381Gt) CurveName() string {
+	return BLS12381G1Name
+}
+
+func (p *PointBls12381Gt) SumOfProducts(points []Point, scalars []Scalar) Point {
+	nPoints := make([]*bls12381.Gt, len(points))
+	nScalars := make([]*native.Field, len(scalars))
+
+	for i, pt := range points {
+		pp, ok := pt.(*PointBls12381Gt)
+		if !ok {
+			return nil
+		}
+		nPoints[i] = pp.Value
+	}
+	for i, sc := range scalars {
+		s, ok := sc.(*ScalarBls12381)
+		if !ok {
+			return nil
+		}
+		nScalars[i] = s.Value
+	}
+	result := new(bls12381.Gt)
+	for i, pt := range nPoints {
+		t := new(bls12381.Gt).Mul(pt, nScalars[i])
+		result.Add(result, t)
+	}
+	return &PointBls12381Gt{result}
 }
