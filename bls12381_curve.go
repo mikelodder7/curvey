@@ -9,8 +9,6 @@ import (
 	"io"
 	"math/big"
 
-	"golang.org/x/crypto/sha3"
-
 	"github.com/mikelodder7/curvey/internal"
 	"github.com/mikelodder7/curvey/native"
 	"github.com/mikelodder7/curvey/native/bls12381"
@@ -877,24 +875,19 @@ func multiPairing(points ...PairingPoint) Scalar {
 	return &ScalarBls12381Gt{value}
 }
 
-func (*ScalarBls12381Gt) Random(reader io.Reader) Scalar {
-	value, err := new(bls12381.Gt).Random(reader)
-	if err != nil {
-		return nil
-	}
-	return &ScalarBls12381Gt{value}
+func (s *ScalarBls12381Gt) Random(reader io.Reader) Scalar {
+	var seed [64]byte
+	_, _ = reader.Read(seed[:])
+	return s.Hash(seed[:])
 }
 
 func (s *ScalarBls12381Gt) Hash(bytes []byte) Scalar {
-	reader := sha3.NewShake256()
-	n, err := reader.Write(bytes)
-	if err != nil {
-		return nil
-	}
-	if n != len(bytes) {
-		return nil
-	}
-	return s.Random(reader)
+	domain := []byte("BLS12381G1_XMD:SHA-256_SSWU_RO_")
+	pt1 := new(bls12381.G1).Hash(native.EllipticPointHasherSha256(), bytes, domain)
+	pt2 := new(bls12381.G2).Generator()
+	engine := new(bls12381.Engine)
+	engine.AddPair(pt1, pt2)
+	return &ScalarBls12381Gt{Value: engine.Result()}
 }
 
 func (*ScalarBls12381Gt) Zero() Scalar {
