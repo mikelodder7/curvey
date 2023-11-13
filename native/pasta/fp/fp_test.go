@@ -153,10 +153,10 @@ func TestFpNeg(t *testing.T) {
 	g := PastaFpNew().SetRaw(&generator)
 	a := PastaFpNew().SetOne()
 	a.Neg(a)
-	e := [native.FieldLimbs]uint64{7256640077462241284, 9879318615658062958, 0, 0}
+	e := [native.Field4Limbs]uint64{7256640077462241284, 9879318615658062958, 0, 0}
 	require.Equal(t, e, a.Value)
 	a.Neg(g)
-	e = [native.FieldLimbs]uint64{0xf787d28400000014, 0xad83f3b0ba037627, 0x2, 0x0}
+	e = [native.Field4Limbs]uint64{0xf787d28400000014, 0xad83f3b0ba037627, 0x2, 0x0}
 	require.Equal(t, e, a.Value)
 }
 
@@ -180,14 +180,14 @@ func TestFpSqrt(t *testing.T) {
 }
 
 func TestFpInvert(t *testing.T) {
-	twoInv := PastaFpNew().SetLimbs(&[native.FieldLimbs]uint64{0xcc96987680000001, 0x11234c7e04a67c8d, 0x0000000000000000, 0x2000000000000000})
+	twoInv := PastaFpNew().SetLimbs(&[native.Field4Limbs]uint64{0xcc96987680000001, 0x11234c7e04a67c8d, 0x0000000000000000, 0x2000000000000000})
 	two := PastaFpNew().SetUint64(2)
 	a, inverted := PastaFpNew().Invert(two)
 	require.True(t, inverted)
 	require.Equal(t, a, twoInv)
 
-	rootOfUnity := PastaFpNew().SetLimbs(&[native.FieldLimbs]uint64{0xbdad6fabd87ea32f, 0xea322bf2b7bb7584, 0x362120830561f81a, 0x2bce74deac30ebda})
-	rootOfUnityInv := PastaFpNew().SetLimbs(&[native.FieldLimbs]uint64{0xf0b87c7db2ce91f6, 0x84a0a1d8859f066f, 0xb4ed8e647196dad1, 0x2cd5282c53116b5c})
+	rootOfUnity := PastaFpNew().SetLimbs(&[native.Field4Limbs]uint64{0xbdad6fabd87ea32f, 0xea322bf2b7bb7584, 0x362120830561f81a, 0x2bce74deac30ebda})
+	rootOfUnityInv := PastaFpNew().SetLimbs(&[native.Field4Limbs]uint64{0xf0b87c7db2ce91f6, 0x84a0a1d8859f066f, 0xb4ed8e647196dad1, 0x2cd5282c53116b5c})
 	a, inverted = PastaFpNew().Invert(rootOfUnity)
 	require.True(t, inverted)
 	require.Equal(t, a, rootOfUnityInv)
@@ -231,7 +231,7 @@ func TestFpBigInt(t *testing.T) {
 	t2 := PastaFpNew().SetBigInt(t1.BigInt())
 	require.Equal(t, t1, t2)
 
-	e := PastaFpNew().SetRaw(&[native.FieldLimbs]uint64{0x8c6bc70550c87761, 0xce2c6c48e7063731, 0xf1275fd1e4607cd6, 0x3e6762e63501edbd})
+	e := PastaFpNew().SetRaw(&[native.Field4Limbs]uint64{0x8c6bc70550c87761, 0xce2c6c48e7063731, 0xf1275fd1e4607cd6, 0x3e6762e63501edbd})
 	b := new(big.Int).SetBytes([]byte{9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9})
 	t1.SetBigInt(b)
 	require.Equal(t, e, t1)
@@ -245,7 +245,7 @@ func TestFpBigInt(t *testing.T) {
 }
 
 func TestFpSetBytesWide(t *testing.T) {
-	e := PastaFpNew().SetLimbs(&[native.FieldLimbs]uint64{0x3daec14d565241d9, 0x0b7af45b6073944b, 0xea5b8bd611a5bd4c, 0x150160330625db3d})
+	e := PastaFpNew().SetLimbs(&[native.Field4Limbs]uint64{0x3daec14d565241d9, 0x0b7af45b6073944b, 0xea5b8bd611a5bd4c, 0x150160330625db3d})
 	a := PastaFpNew().SetBytesWide(&[64]byte{
 		0xa1, 0x78, 0x76, 0x29, 0x41, 0x56, 0x15, 0xee,
 		0x65, 0xbe, 0xfd, 0xdb, 0x6b, 0x15, 0x3e, 0xd8,

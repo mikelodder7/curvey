@@ -37,10 +37,10 @@ func pointParamsInit() {
 	// gy := fp.P256FpNew().SetBigInt(params.Gy)
 
 	p256PointParams = native.EllipticPointParams{
-		A:       fp.P256FpNew().SetRaw(&[native.FieldLimbs]uint64{0xfffffffffffffffc, 0x00000003ffffffff, 0x0000000000000000, 0xfffffffc00000004}),
-		B:       fp.P256FpNew().SetRaw(&[native.FieldLimbs]uint64{0xd89cdf6229c4bddf, 0xacf005cd78843090, 0xe5a220abf7212ed6, 0xdc30061d04874834}),
-		Gx:      fp.P256FpNew().SetRaw(&[native.FieldLimbs]uint64{0x79e730d418a9143c, 0x75ba95fc5fedb601, 0x79fb732b77622510, 0x18905f76a53755c6}),
-		Gy:      fp.P256FpNew().SetRaw(&[native.FieldLimbs]uint64{0xddf25357ce95560a, 0x8b4ab8e4ba19e45c, 0xd2e88688dd21f325, 0x8571ff1825885d85}),
+		A:       fp.P256FpNew().SetRaw(&[native.Field4Limbs]uint64{0xfffffffffffffffc, 0x00000003ffffffff, 0x0000000000000000, 0xfffffffc00000004}),
+		B:       fp.P256FpNew().SetRaw(&[native.Field4Limbs]uint64{0xd89cdf6229c4bddf, 0xacf005cd78843090, 0xe5a220abf7212ed6, 0xdc30061d04874834}),
+		Gx:      fp.P256FpNew().SetRaw(&[native.Field4Limbs]uint64{0x79e730d418a9143c, 0x75ba95fc5fedb601, 0x79fb732b77622510, 0x18905f76a53755c6}),
+		Gy:      fp.P256FpNew().SetRaw(&[native.Field4Limbs]uint64{0xddf25357ce95560a, 0x8b4ab8e4ba19e45c, 0xd2e88688dd21f325, 0x8571ff1825885d85}),
 		BitSize: 256,
 		Name:    "P256",
 	}
@@ -79,7 +79,7 @@ func pointSswuParamsInit() {
 	//
 	// var capC1Bytes [32]byte
 	// c1.FillBytes(capC1Bytes[:])
-	// capC1 := fp.P256FpNew().SetRaw(&[native.FieldLimbs]uint64{
+	// capC1 := fp.P256FpNew().SetRaw(&[native.Field4Limbs]uint64{
 	// 	binary.BigEndian.Uint64(capC1Bytes[24:]),
 	// 	binary.BigEndian.Uint64(capC1Bytes[16:24]),
 	// 	binary.BigEndian.Uint64(capC1Bytes[8:16]),
@@ -91,11 +91,11 @@ func pointSswuParamsInit() {
 	// capZ := fp.P256FpNew().SetBigInt(z)
 
 	p256PointSswuParams = native.SswuParams{
-		C1: [native.FieldLimbs]uint64{0xffffffffffffffff, 0x000000003fffffff, 0x4000000000000000, 0x3fffffffc0000000},
-		C2: [native.FieldLimbs]uint64{0x53e43951f64fdbe7, 0xb2806c63966a1a66, 0x1ac5d59c3298bf50, 0xa3323851ba997e27},
-		A:  [native.FieldLimbs]uint64{0xfffffffffffffffc, 0x00000003ffffffff, 0x0000000000000000, 0xfffffffc00000004},
-		B:  [native.FieldLimbs]uint64{0xd89cdf6229c4bddf, 0xacf005cd78843090, 0xe5a220abf7212ed6, 0xdc30061d04874834},
-		Z:  [native.FieldLimbs]uint64{0xfffffffffffffff5, 0x0000000affffffff, 0x0000000000000000, 0xfffffff50000000b},
+		C1: [native.Field4Limbs]uint64{0xffffffffffffffff, 0x000000003fffffff, 0x4000000000000000, 0x3fffffffc0000000},
+		C2: [native.Field4Limbs]uint64{0x53e43951f64fdbe7, 0xb2806c63966a1a66, 0x1ac5d59c3298bf50, 0xa3323851ba997e27},
+		A:  [native.Field4Limbs]uint64{0xfffffffffffffffc, 0x00000003ffffffff, 0x0000000000000000, 0xfffffffc00000004},
+		B:  [native.Field4Limbs]uint64{0xd89cdf6229c4bddf, 0xacf005cd78843090, 0xe5a220abf7212ed6, 0xdc30061d04874834},
+		Z:  [native.Field4Limbs]uint64{0xfffffffffffffff5, 0x0000000affffffff, 0x0000000000000000, 0xfffffff50000000b},
 	}
 }
 
@@ -134,9 +134,9 @@ func (k pointArithmetic) Hash(out *native.EllipticPoint, hash *native.EllipticPo
 func (pointArithmetic) Double(out, arg *native.EllipticPoint) {
 	// Addition formula from Renes-Costello-Batina 2015
 	// (https://eprint.iacr.org/2015/1060 Algorithm 6)
-	var xx, yy, zz, xy2, yz2, xz2, bzz, bzz3 [native.FieldLimbs]uint64
-	var yyMBzz3, yyPBzz3, yFrag, xFrag, zz3 [native.FieldLimbs]uint64
-	var bxz2, bxz6, xx3Mzz3, x, y, z [native.FieldLimbs]uint64
+	var xx, yy, zz, xy2, yz2, xz2, bzz, bzz3 [native.Field4Limbs]uint64
+	var yyMBzz3, yyPBzz3, yFrag, xFrag, zz3 [native.Field4Limbs]uint64
+	var bxz2, bxz6, xx3Mzz3, x, y, z [native.Field4Limbs]uint64
 	b := getPointParams().B.Value
 	f := arg.X.Arithmetic
 
@@ -196,10 +196,10 @@ func (pointArithmetic) Double(out, arg *native.EllipticPoint) {
 func (pointArithmetic) Add(out, arg1, arg2 *native.EllipticPoint) {
 	// Addition formula from Renes-Costello-Batina 2015
 	// (https://eprint.iacr.org/2015/1060 Algorithm 4).
-	var xx, yy, zz, zz3, bxz, bxz3 [native.FieldLimbs]uint64
-	var tv1, xyPairs, yzPairs, xzPairs [native.FieldLimbs]uint64
-	var bzz, bzz3, yyMBzz3, yyPBzz3 [native.FieldLimbs]uint64
-	var xx3Mzz3, x, y, z [native.FieldLimbs]uint64
+	var xx, yy, zz, zz3, bxz, bxz3 [native.Field4Limbs]uint64
+	var tv1, xyPairs, yzPairs, xzPairs [native.Field4Limbs]uint64
+	var bzz, bzz3, yyMBzz3, yyPBzz3 [native.Field4Limbs]uint64
+	var xx3Mzz3, x, y, z [native.Field4Limbs]uint64
 	f := arg1.X.Arithmetic
 	b := getPointParams().B.Value
 
@@ -288,7 +288,7 @@ func (k pointArithmetic) IsOnCurve(arg *native.EllipticPoint) bool {
 
 func (pointArithmetic) ToAffine(out, arg *native.EllipticPoint) {
 	var wasInverted int
-	var zero, x, y, z [native.FieldLimbs]uint64
+	var zero, x, y, z [native.Field4Limbs]uint64
 	f := arg.X.Arithmetic
 
 	f.Invert(&wasInverted, &z, &arg.Z.Value)
@@ -308,7 +308,7 @@ func (pointArithmetic) ToAffine(out, arg *native.EllipticPoint) {
 	out.Arithmetic = arg.Arithmetic
 }
 
-func (pointArithmetic) RhsEquation(out, x *native.Field) {
+func (pointArithmetic) RhsEquation(out, x *native.Field4) {
 	// Elliptic curve equation for p256 is: y^2 = x^3 ax + b
 	out.Square(x)
 	out.Mul(out, x)

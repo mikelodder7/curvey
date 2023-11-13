@@ -13,30 +13,30 @@ import (
 
 var (
 	k256FpInitonce sync.Once
-	k256FpParams   native.FieldParams
+	k256FpParams   native.Field4Params
 )
 
-func K256FpNew() *native.Field {
-	return &native.Field{
-		Value:      [native.FieldLimbs]uint64{},
+func K256FpNew() *native.Field4 {
+	return &native.Field4{
+		Value:      [native.Field4Limbs]uint64{},
 		Params:     getK256FpParams(),
 		Arithmetic: k256FpArithmetic{},
 	}
 }
 
 func k256FpParamsInit() {
-	k256FpParams = native.FieldParams{
-		R:       [native.FieldLimbs]uint64{0x00000001000003d1, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000},
-		R2:      [native.FieldLimbs]uint64{0x000007a2000e90a1, 0x0000000000000001, 0x0000000000000000, 0x0000000000000000},
-		R3:      [native.FieldLimbs]uint64{0x002bb1e33795f671, 0x0000000100000b73, 0x0000000000000000, 0x0000000000000000},
-		Modulus: [native.FieldLimbs]uint64{0xfffffffefffffc2f, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff},
+	k256FpParams = native.Field4Params{
+		R:       [native.Field4Limbs]uint64{0x00000001000003d1, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000},
+		R2:      [native.Field4Limbs]uint64{0x000007a2000e90a1, 0x0000000000000001, 0x0000000000000000, 0x0000000000000000},
+		R3:      [native.Field4Limbs]uint64{0x002bb1e33795f671, 0x0000000100000b73, 0x0000000000000000, 0x0000000000000000},
+		Modulus: [native.Field4Limbs]uint64{0xfffffffefffffc2f, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff},
 		BiModulus: new(big.Int).SetBytes([]byte{
 			0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe, 0xff, 0xff, 0xfc, 0x2f,
 		}),
 	}
 }
 
-func getK256FpParams() *native.FieldParams {
+func getK256FpParams() *native.Field4Params {
 	k256FpInitonce.Do(k256FpParamsInit)
 	return &k256FpParams
 }
@@ -46,66 +46,66 @@ func getK256FpParams() *native.FieldParams {
 type k256FpArithmetic struct{}
 
 // ToMontgomery converts this field to montgomery form.
-func (k256FpArithmetic) ToMontgomery(out, arg *[native.FieldLimbs]uint64) {
+func (k256FpArithmetic) ToMontgomery(out, arg *[native.Field4Limbs]uint64) {
 	ToMontgomery((*MontgomeryDomainFieldElement)(out), (*NonMontgomeryDomainFieldElement)(arg))
 }
 
 // FromMontgomery converts this field from montgomery form.
-func (k256FpArithmetic) FromMontgomery(out, arg *[native.FieldLimbs]uint64) {
+func (k256FpArithmetic) FromMontgomery(out, arg *[native.Field4Limbs]uint64) {
 	FromMontgomery((*NonMontgomeryDomainFieldElement)(out), (*MontgomeryDomainFieldElement)(arg))
 }
 
 // Neg performs modular negation.
-func (k256FpArithmetic) Neg(out, arg *[native.FieldLimbs]uint64) {
+func (k256FpArithmetic) Neg(out, arg *[native.Field4Limbs]uint64) {
 	Opp((*MontgomeryDomainFieldElement)(out), (*MontgomeryDomainFieldElement)(arg))
 }
 
 // Square performs modular square.
-func (k256FpArithmetic) Square(out, arg *[native.FieldLimbs]uint64) {
+func (k256FpArithmetic) Square(out, arg *[native.Field4Limbs]uint64) {
 	Square((*MontgomeryDomainFieldElement)(out), (*MontgomeryDomainFieldElement)(arg))
 }
 
 // Mul performs modular multiplication.
-func (k256FpArithmetic) Mul(out, arg1, arg2 *[native.FieldLimbs]uint64) {
+func (k256FpArithmetic) Mul(out, arg1, arg2 *[native.Field4Limbs]uint64) {
 	Mul((*MontgomeryDomainFieldElement)(out), (*MontgomeryDomainFieldElement)(arg1), (*MontgomeryDomainFieldElement)(arg2))
 }
 
 // Add performs modular addition.
-func (k256FpArithmetic) Add(out, arg1, arg2 *[native.FieldLimbs]uint64) {
+func (k256FpArithmetic) Add(out, arg1, arg2 *[native.Field4Limbs]uint64) {
 	Add((*MontgomeryDomainFieldElement)(out), (*MontgomeryDomainFieldElement)(arg1), (*MontgomeryDomainFieldElement)(arg2))
 }
 
 // Sub performs modular subtraction.
-func (k256FpArithmetic) Sub(out, arg1, arg2 *[native.FieldLimbs]uint64) {
+func (k256FpArithmetic) Sub(out, arg1, arg2 *[native.Field4Limbs]uint64) {
 	Sub((*MontgomeryDomainFieldElement)(out), (*MontgomeryDomainFieldElement)(arg1), (*MontgomeryDomainFieldElement)(arg2))
 }
 
 // Sqrt performs modular square root.
-func (f k256FpArithmetic) Sqrt(wasSquare *int, out, arg *[native.FieldLimbs]uint64) {
+func (f k256FpArithmetic) Sqrt(wasSquare *int, out, arg *[native.Field4Limbs]uint64) {
 	// p is congruent to 3 mod 4 we can compute
 	// sqrt using elem^(p+1)/4 mod p
 	// 0x3fffffffffffffffffffffffffffffffffffffffffffffffffffffffbfffff0c
-	var s, t [native.FieldLimbs]uint64
+	var s, t [native.Field4Limbs]uint64
 	params := getK256FpParams()
-	native.Pow(&s, arg, &[native.FieldLimbs]uint64{
+	native.Pow(&s, arg, &[native.Field4Limbs]uint64{
 		0xffffffffbfffff0c,
 		0xffffffffffffffff,
 		0xffffffffffffffff,
 		0x3fffffffffffffff,
 	}, params, f)
 	f.Square(&t, &s)
-	tv1 := &native.Field{Value: t, Params: params, Arithmetic: f}
-	tv2 := &native.Field{Value: *arg, Params: params, Arithmetic: f}
+	tv1 := &native.Field4{Value: t, Params: params, Arithmetic: f}
+	tv2 := &native.Field4{Value: *arg, Params: params, Arithmetic: f}
 	*wasSquare = tv1.Equal(tv2)
 	f.Selectznz(out, out, &s, *wasSquare)
 }
 
 // Invert performs modular inverse.
-func (f k256FpArithmetic) Invert(wasInverted *int, out, arg *[native.FieldLimbs]uint64) {
+func (f k256FpArithmetic) Invert(wasInverted *int, out, arg *[native.Field4Limbs]uint64) {
 	// The binary representation of (p - 2) has 5 groups of 1s, with lengths in
 	// { 1, 2, 22, 223 }. Use an addition chain to calculate 2^n - 1 for each group:
 	// [1], [2], 3, 6, 9, 11, [22], 44, 88, 176, 220, [223]
-	var s, x2, x3, x6, x9, x11, x22, x44, x88, x176, x220, x223 [native.FieldLimbs]uint64
+	var s, x2, x3, x6, x9, x11, x22, x44, x88, x176, x220, x223 [native.Field4Limbs]uint64
 
 	native.Pow2k(&x2, arg, 1, f)
 	f.Mul(&x2, &x2, arg)
@@ -150,24 +150,24 @@ func (f k256FpArithmetic) Invert(wasInverted *int, out, arg *[native.FieldLimbs]
 	native.Pow2k(&s, &s, 2, f)
 	f.Mul(&s, &s, arg)
 
-	tv := &native.Field{Value: *arg, Params: getK256FpParams(), Arithmetic: f}
+	tv := &native.Field4{Value: *arg, Params: getK256FpParams(), Arithmetic: f}
 
 	*wasInverted = tv.IsNonZero()
 	f.Selectznz(out, out, &s, *wasInverted)
 }
 
 // FromBytes converts a little endian byte array into a field element.
-func (k256FpArithmetic) FromBytes(out *[native.FieldLimbs]uint64, arg *[native.FieldBytes]byte) {
+func (k256FpArithmetic) FromBytes(out *[native.Field4Limbs]uint64, arg *[native.Field4Bytes]byte) {
 	FromBytes(out, arg)
 }
 
 // ToBytes converts a field element to a little endian byte array.
-func (k256FpArithmetic) ToBytes(out *[native.FieldBytes]byte, arg *[native.FieldLimbs]uint64) {
+func (k256FpArithmetic) ToBytes(out *[native.Field4Bytes]byte, arg *[native.Field4Limbs]uint64) {
 	ToBytes(out, arg)
 }
 
 // Selectznz performs conditional select.
 // selects arg1 if choice == 0 and arg2 if choice == 1.
-func (k256FpArithmetic) Selectznz(out, arg1, arg2 *[native.FieldLimbs]uint64, choice int) {
+func (k256FpArithmetic) Selectznz(out, arg1, arg2 *[native.Field4Limbs]uint64, choice int) {
 	Selectznz(out, uint1(choice), arg1, arg2)
 }

@@ -31,7 +31,7 @@ func pallasPointParamsInit() {
 		A:       fp.PastaFpNew().SetZero(),
 		B:       fp.PastaFpNew().SetUint64(5),
 		Gx:      fp.PastaFpNew().SetOne(),
-		Gy:      fp.PastaFpNew().SetRaw(&[native.FieldLimbs]uint64{0x2f474795455d409d, 0xb443b9b74b8255d9, 0x270c412f2c9a5d66, 0x8e00f71ba43dd6b}),
+		Gy:      fp.PastaFpNew().SetRaw(&[native.Field4Limbs]uint64{0x2f474795455d409d, 0xb443b9b74b8255d9, 0x270c412f2c9a5d66, 0x8e00f71ba43dd6b}),
 		BitSize: 255,
 		Name:    "pallas",
 	}
@@ -72,7 +72,7 @@ func (pallasPointArithmetic) Hash(out *native.EllipticPoint, hash *native.Ellipt
 }
 
 func (pallasPointArithmetic) Double(out, arg *native.EllipticPoint) {
-	var a, b, c, d, e, f, x, y, z [native.FieldLimbs]uint64
+	var a, b, c, d, e, f, x, y, z [native.Field4Limbs]uint64
 	u := arg.X.Arithmetic
 
 	// essentially paraphrased https://github.com/MinaProtocol/c-reference-signer/blob/master/crypto.c#L306-L337
@@ -113,8 +113,8 @@ func (p pallasPointArithmetic) Add(out, arg1, arg2 *native.EllipticPoint) {
 	e1 := arg1.Z.IsZero()
 	e2 := arg2.Z.IsZero()
 
-	var z1z1, z2z2, u1, u2, s1, s2, zero [native.FieldLimbs]uint64
-	var h, i, j, r, v, x3, y3, z3, t1 [native.FieldLimbs]uint64
+	var z1z1, z2z2, u1, u2, s1, s2, zero [native.Field4Limbs]uint64
+	var h, i, j, r, v, x3, y3, z3, t1 [native.Field4Limbs]uint64
 	darg1 := PointNew()
 	a := arg1.X.Arithmetic
 
@@ -184,7 +184,7 @@ func (p pallasPointArithmetic) Add(out, arg1, arg2 *native.EllipticPoint) {
 }
 
 func (pallasPointArithmetic) IsOnCurve(arg *native.EllipticPoint) bool {
-	var z2, z4, z6, x2, x3, lhs, rhs [native.FieldLimbs]uint64
+	var z2, z4, z6, x2, x3, lhs, rhs [native.Field4Limbs]uint64
 
 	u := arg.X.Arithmetic
 	u.Square(&z2, &arg.Z.Value)
@@ -207,7 +207,7 @@ func (pallasPointArithmetic) IsOnCurve(arg *native.EllipticPoint) bool {
 
 func (pallasPointArithmetic) ToAffine(out, arg *native.EllipticPoint) {
 	var wasInverted int
-	var zero, x, y, z, zinv [native.FieldLimbs]uint64
+	var zero, x, y, z, zinv [native.Field4Limbs]uint64
 	f := arg.X.Arithmetic
 
 	f.Invert(&wasInverted, &zinv, &arg.Z.Value)
@@ -226,21 +226,21 @@ func (pallasPointArithmetic) ToAffine(out, arg *native.EllipticPoint) {
 	out.Z.Value = z
 }
 
-func (pallasPointArithmetic) RhsEquation(out, x *native.Field) {
+func (pallasPointArithmetic) RhsEquation(out, x *native.Field4) {
 	// Elliptic curve equation for pallas is: y^2 = x^3 + b
 	out.Square(x)
 	out.Mul(out, x)
 	out.Add(out, getPallasPointParams().B)
 }
 
-func mapSswu(p *native.EllipticPoint, u *native.Field) {
-	isoa := [native.FieldLimbs]uint64{0x7fc5d29077bb08de, 0x93090252cf122108, 0x49f63ff5da1145bb, 0x1c6d4f087137f0dc}
-	isob := [native.FieldLimbs]uint64{0xf7f22478ffffec3d, 0xa6dec35433e1339b, 0xfffffffffffffd5a, 0x3fffffffffffffff}
-	z := [native.FieldLimbs]uint64{0x1d2df02400000034, 0xf6571331e3a2999b, 0x0000000000000006, 0x0000000000000000}
+func mapSswu(p *native.EllipticPoint, u *native.Field4) {
+	isoa := [native.Field4Limbs]uint64{0x7fc5d29077bb08de, 0x93090252cf122108, 0x49f63ff5da1145bb, 0x1c6d4f087137f0dc}
+	isob := [native.Field4Limbs]uint64{0xf7f22478ffffec3d, 0xa6dec35433e1339b, 0xfffffffffffffd5a, 0x3fffffffffffffff}
+	z := [native.Field4Limbs]uint64{0x1d2df02400000034, 0xf6571331e3a2999b, 0x0000000000000006, 0x0000000000000000}
 	// c1 := new(fp.Fp).Neg(isoa)
 	// c1.Invert(c1)
 	// c1.Mul(isob, c1)
-	c1 := [native.FieldLimbs]uint64{
+	c1 := [native.Field4Limbs]uint64{
 		0x1ee770ce078456ec,
 		0x48cfd64c2ce76be0,
 		0x43d5774c0ab79e2f,
@@ -248,14 +248,14 @@ func mapSswu(p *native.EllipticPoint, u *native.Field) {
 	}
 	// c2 := new(fp.Fp).Neg(z)
 	// c2.Invert(c2)
-	c2 := [native.FieldLimbs]uint64{
+	c2 := [native.Field4Limbs]uint64{
 		0x03df915f89d89d8a,
 		0x8f1e8db09ef82653,
 		0xd89d89d89d89d89d,
 		0x1d89d89d89d89d89,
 	}
 
-	var u2, tv1, tv2, x1, x2, gx1, gx2, x, y [native.FieldLimbs]uint64
+	var u2, tv1, tv2, x1, x2, gx1, gx2, x, y [native.Field4Limbs]uint64
 	var wasInverted, wasSquare int
 	a := u.Arithmetic
 
@@ -293,7 +293,7 @@ func mapSswu(p *native.EllipticPoint, u *native.Field) {
 	p.Z.SetOne()
 }
 
-var isomapper = [13][native.FieldLimbs]uint64{
+var isomapper = [13][native.Field4Limbs]uint64{
 	{0xc6e037a01c71c71d, 0x130ac6c4e8b8fc2b, 0x0000000000000000, 0x4000000000000000},
 	{0x4c6e64f2323d5cee, 0x501f41cfd25ec1f0, 0x05dee76e883f5ca7, 0x33183c981332cc59},
 	{0x6a3ee7799df56376, 0x126b79ab78c7152f, 0x3260d1c7394f73d9, 0x3faf24198196224d},
@@ -313,8 +313,8 @@ var isomapper = [13][native.FieldLimbs]uint64{
 // The input and output are in Jacobian coordinates, using the method
 // in "Avoiding inversions" [WB2019, section 4.3].
 func isoMap(out, arg *native.EllipticPoint) {
-	var z [4][native.FieldLimbs]uint64
-	var numX, divX, numY, divY, t, z0, x, y [native.FieldLimbs]uint64
+	var z [4][native.Field4Limbs]uint64
+	var numX, divX, numY, divY, t, z0, x, y [native.Field4Limbs]uint64
 	a := arg.X.Arithmetic
 	a.Square(&z[0], &arg.Z.Value)     // z^2
 	a.Mul(&z[1], &z[0], &arg.Z.Value) // z^3

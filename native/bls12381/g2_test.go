@@ -224,13 +224,13 @@ func TestG2Neg(t *testing.T) {
 
 func TestG2Mul(t *testing.T) {
 	g := new(G2).Generator()
-	a := FqNew().SetRaw(&[native.FieldLimbs]uint64{
+	a := FqNew().SetRaw(&[native.Field4Limbs]uint64{
 		0x2b56_8297_a56d_a71c,
 		0xd8c3_9ecb_0ef3_75d1,
 		0x435c_38da_67bf_bf96,
 		0x8088_a050_26b6_59b2,
 	})
-	b := FqNew().SetRaw(&[native.FieldLimbs]uint64{
+	b := FqNew().SetRaw(&[native.Field4Limbs]uint64{
 		0x785f_dd9b_26ef_8b85,
 		0xc997_f258_3769_5c18,
 		0x4c8d_bc39_e7b7_56c1,
@@ -489,7 +489,7 @@ func TestG2ClearCofactor(t *testing.T) {
 
 	// test the effect on q-torsion points multiplying by h_eff modulo q
 	// h_eff % q = 0x2b116900400069009a40200040001ffff
-	hEffModq := [native.FieldBytes]byte{
+	hEffModq := [native.Field4Bytes]byte{
 		0xff, 0xff, 0x01, 0x00, 0x04, 0x00, 0x02, 0xa4, 0x09, 0x90, 0x06, 0x00, 0x04, 0x90, 0x16,
 		0xb1, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00,
@@ -539,7 +539,7 @@ func TestG2SumOfProducts(t *testing.T) {
 	c := FqNew().SetBytesWide(&b)
 
 	lhs := new(G2).Mul(h0, s)
-	rhs, _ := new(G2).SumOfProducts([]*G2{h0}, []*native.Field{s})
+	rhs, _ := new(G2).SumOfProducts([]*G2{h0}, []*native.Field4{s})
 	require.Equal(t, 1, lhs.Equal(rhs))
 
 	u := new(G2).Mul(h0, s)
@@ -550,6 +550,6 @@ func TestG2SumOfProducts(t *testing.T) {
 	rhs.Mul(u, c)
 	rhs.Add(rhs, new(G2).Mul(h0, sHat))
 	require.Equal(t, 1, uTilde.Equal(rhs))
-	_, _ = rhs.SumOfProducts([]*G2{u, h0}, []*native.Field{c, sHat})
+	_, _ = rhs.SumOfProducts([]*G2{u, h0}, []*native.Field4{c, sHat})
 	require.Equal(t, 1, uTilde.Equal(rhs))
 }

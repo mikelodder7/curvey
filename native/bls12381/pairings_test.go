@@ -36,7 +36,7 @@ func TestMultiPairing(t *testing.T) {
 
 	g1s := make([]*G1, Tests)
 	g2s := make([]*G2, Tests)
-	sc := make([]*native.Field, Tests)
+	sc := make([]*native.Field4, Tests)
 	res := make([]*Gt, Tests)
 	expected := new(Gt).SetOne()
 

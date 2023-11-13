@@ -101,7 +101,7 @@ func (*Koblitz256) ScalarBaseMult(k []byte) (*big.Int, *big.Int) {
 }
 
 type ScalarK256 struct {
-	value *native.Field
+	value *native.Field4
 }
 
 type PointK256 struct {
@@ -183,7 +183,7 @@ func (s *ScalarK256) Square() Scalar {
 }
 
 func (s *ScalarK256) Pow(exp uint64) Scalar {
-	expFieldLimb := [native.FieldLimbs]uint64{exp, 0, 0, 0}
+	expFieldLimb := [native.Field4Limbs]uint64{exp, 0, 0, 0}
 	out := ScalarK256{value: fq.K256FqNew()}
 	native.Pow(&out.value.Value, &s.value.Value, &expFieldLimb, s.value.Params, s.value.Arithmetic)
 	return &ScalarK256{
@@ -523,7 +523,7 @@ func (p *PointK256) ToAffineUncompressed() []byte {
 }
 
 func (p *PointK256) FromAffineCompressed(bytes []byte) (Point, error) {
-	var raw [native.FieldBytes]byte
+	var raw [native.Field4Bytes]byte
 	if len(bytes) != 33 {
 		return nil, fmt.Errorf("invalid byte sequence")
 	}
@@ -559,7 +559,7 @@ func (p *PointK256) FromAffineCompressed(bytes []byte) (Point, error) {
 }
 
 func (*PointK256) FromAffineUncompressed(bytes []byte) (Point, error) {
-	var arr [native.FieldBytes]byte
+	var arr [native.Field4Bytes]byte
 	if len(bytes) != 65 {
 		return nil, fmt.Errorf("invalid byte sequence")
 	}
@@ -590,7 +590,7 @@ func (p *PointK256) CurveName() string {
 
 func (*PointK256) SumOfProducts(points []Point, scalars []Scalar) Point {
 	nPoints := make([]*native.EllipticPoint, len(points))
-	nScalars := make([]*native.Field, len(scalars))
+	nScalars := make([]*native.Field4, len(scalars))
 	for i, pt := range points {
 		ptv, ok := pt.(*PointK256)
 		if !ok {
@@ -613,11 +613,11 @@ func (*PointK256) SumOfProducts(points []Point, scalars []Scalar) Point {
 	return &PointK256{value}
 }
 
-func (p *PointK256) X() *native.Field {
+func (p *PointK256) X() *native.Field4 {
 	return p.value.GetX()
 }
 
-func (p *PointK256) Y() *native.Field {
+func (p *PointK256) Y() *native.Field4 {
 	return p.value.GetY()
 }
 

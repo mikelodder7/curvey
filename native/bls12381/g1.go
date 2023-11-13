@@ -537,12 +537,12 @@ type G1 struct {
 // Random creates a random point on the curve
 // from the specified reader.
 func (g1 *G1) Random(reader io.Reader) (*G1, error) {
-	var seed [native.WideFieldBytes]byte
+	var seed [native.WideField4Bytes]byte
 	n, err := reader.Read(seed[:])
 	if err != nil {
 		return nil, errors.Wrap(err, "random could not read from stream")
 	}
-	if n != native.WideFieldBytes {
+	if n != native.WideField4Bytes {
 		return nil, fmt.Errorf("insufficient bytes read %d when %d are needed", n, WideFieldBytes)
 	}
 	dst := []byte("BLS12381G1_XMD:SHA-256_SSWU_RO_")
@@ -705,12 +705,12 @@ func (g1 *G1) Double(a *G1) *G1 {
 }
 
 // Mul multiplies this point by the input scalar.
-func (g1 *G1) Mul(a *G1, s *native.Field) *G1 {
+func (g1 *G1) Mul(a *G1, s *native.Field4) *G1 {
 	bytes := s.Bytes()
 	return g1.multiply(a, &bytes)
 }
 
-func (g1 *G1) multiply(a *G1, bytes *[native.FieldBytes]byte) *G1 {
+func (g1 *G1) multiply(a *G1, bytes *[native.Field4Bytes]byte) *G1 {
 	var p G1
 	precomputed := [16]*G1{}
 	precomputed[0] = new(G1).Identity()
@@ -971,7 +971,7 @@ func (g1 *G1) CMove(arg1, arg2 *G1, choice int) *G1 {
 // SumOfProducts computes the multi-exponentiation for the specified
 // points and scalars and stores the result in `g1`.
 // Returns an error if the lengths of the arguments is not equal.
-func (g1 *G1) SumOfProducts(points []*G1, scalars []*native.Field) (*G1, error) {
+func (g1 *G1) SumOfProducts(points []*G1, scalars []*native.Field4) (*G1, error) {
 	const Upper = 256
 	const W = 4
 	const Windows = Upper / W // careful--use ceiling division in case this doesn't divide evenly

@@ -15,23 +15,23 @@ import (
 
 var (
 	pastaFqInitonce sync.Once
-	pastaFqParams   native.FieldParams
+	pastaFqParams   native.Field4Params
 )
 
-func PastaFqNew() *native.Field {
-	return &native.Field{
-		Value:      [native.FieldLimbs]uint64{},
+func PastaFqNew() *native.Field4 {
+	return &native.Field4{
+		Value:      [native.Field4Limbs]uint64{},
 		Params:     getPastaFqParams(),
 		Arithmetic: pastaFqArithmetic{},
 	}
 }
 
 func pastaFqParamsInit() {
-	pastaFqParams = native.FieldParams{
-		R:       [native.FieldLimbs]uint64{0x5b2b3e9cfffffffd, 0x992c350be3420567, 0xffffffffffffffff, 0x3fffffffffffffff},
-		R2:      [native.FieldLimbs]uint64{0xfc9678ff0000000f, 0x67bb433d891a16e3, 0x7fae231004ccf590, 0x096d41af7ccfdaa9},
-		R3:      [native.FieldLimbs]uint64{0x008b421c249dae4c, 0xe13bda50dba41326, 0x88fececb8e15cb63, 0x07dd97a06e6792c8},
-		Modulus: [native.FieldLimbs]uint64{0x8c46eb2100000001, 0x224698fc0994a8dd, 0x0000000000000000, 0x4000000000000000},
+	pastaFqParams = native.Field4Params{
+		R:       [native.Field4Limbs]uint64{0x5b2b3e9cfffffffd, 0x992c350be3420567, 0xffffffffffffffff, 0x3fffffffffffffff},
+		R2:      [native.Field4Limbs]uint64{0xfc9678ff0000000f, 0x67bb433d891a16e3, 0x7fae231004ccf590, 0x096d41af7ccfdaa9},
+		R3:      [native.Field4Limbs]uint64{0x008b421c249dae4c, 0xe13bda50dba41326, 0x88fececb8e15cb63, 0x07dd97a06e6792c8},
+		Modulus: [native.Field4Limbs]uint64{0x8c46eb2100000001, 0x224698fc0994a8dd, 0x0000000000000000, 0x4000000000000000},
 		BiModulus: new(big.Int).SetBytes([]byte{
 			0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -41,30 +41,30 @@ func pastaFqParamsInit() {
 	}
 }
 
-func getPastaFqParams() *native.FieldParams {
+func getPastaFqParams() *native.Field4Params {
 	pastaFqInitonce.Do(pastaFqParamsInit)
 	return &pastaFqParams
 }
 
 type pastaFqArithmetic struct{}
 
-func (pastaFqArithmetic) ToMontgomery(out, arg *[native.FieldLimbs]uint64) {
+func (pastaFqArithmetic) ToMontgomery(out, arg *[native.Field4Limbs]uint64) {
 	fiatPastaFqToMontgomery((*fiatPastaFqMontgomeryDomainFieldElement)(out), (*fiatPastaFqNonMontgomeryDomainFieldElement)(arg))
 }
 
-func (pastaFqArithmetic) FromMontgomery(out, arg *[native.FieldLimbs]uint64) {
+func (pastaFqArithmetic) FromMontgomery(out, arg *[native.Field4Limbs]uint64) {
 	fiatPastaFqFromMontgomery((*fiatPastaFqNonMontgomeryDomainFieldElement)(out), (*fiatPastaFqMontgomeryDomainFieldElement)(arg))
 }
 
-func (pastaFqArithmetic) Neg(out, arg *[native.FieldLimbs]uint64) {
+func (pastaFqArithmetic) Neg(out, arg *[native.Field4Limbs]uint64) {
 	fiatPastaFqOpp((*fiatPastaFqMontgomeryDomainFieldElement)(out), (*fiatPastaFqMontgomeryDomainFieldElement)(arg))
 }
 
-func (pastaFqArithmetic) Square(out, arg *[native.FieldLimbs]uint64) {
+func (pastaFqArithmetic) Square(out, arg *[native.Field4Limbs]uint64) {
 	fiatPastaFqSquare((*fiatPastaFqMontgomeryDomainFieldElement)(out), (*fiatPastaFqMontgomeryDomainFieldElement)(arg))
 }
 
-func (pastaFqArithmetic) Mul(out, arg1, arg2 *[native.FieldLimbs]uint64) {
+func (pastaFqArithmetic) Mul(out, arg1, arg2 *[native.Field4Limbs]uint64) {
 	fiatPastaFqMul(
 		(*fiatPastaFqMontgomeryDomainFieldElement)(out),
 		(*fiatPastaFqMontgomeryDomainFieldElement)(arg1),
@@ -72,7 +72,7 @@ func (pastaFqArithmetic) Mul(out, arg1, arg2 *[native.FieldLimbs]uint64) {
 	)
 }
 
-func (pastaFqArithmetic) Add(out, arg1, arg2 *[native.FieldLimbs]uint64) {
+func (pastaFqArithmetic) Add(out, arg1, arg2 *[native.Field4Limbs]uint64) {
 	fiatPastaFqAdd(
 		(*fiatPastaFqMontgomeryDomainFieldElement)(out),
 		(*fiatPastaFqMontgomeryDomainFieldElement)(arg1),
@@ -80,7 +80,7 @@ func (pastaFqArithmetic) Add(out, arg1, arg2 *[native.FieldLimbs]uint64) {
 	)
 }
 
-func (pastaFqArithmetic) Sub(out, arg1, arg2 *[native.FieldLimbs]uint64) {
+func (pastaFqArithmetic) Sub(out, arg1, arg2 *[native.Field4Limbs]uint64) {
 	fiatPastaFqSub(
 		(*fiatPastaFqMontgomeryDomainFieldElement)(out),
 		(*fiatPastaFqMontgomeryDomainFieldElement)(arg1),
@@ -88,7 +88,7 @@ func (pastaFqArithmetic) Sub(out, arg1, arg2 *[native.FieldLimbs]uint64) {
 	)
 }
 
-func (f pastaFqArithmetic) Sqrt(wasSquare *int, out, arg *[native.FieldLimbs]uint64) {
+func (f pastaFqArithmetic) Sqrt(wasSquare *int, out, arg *[native.Field4Limbs]uint64) {
 	// c1 := 32
 	// c2 := (q - 1) / (2^c1)
 	// c2 := [4]uint64{
@@ -98,7 +98,7 @@ func (f pastaFqArithmetic) Sqrt(wasSquare *int, out, arg *[native.FieldLimbs]uin
 	// 	0x0000000040000000,
 	// }
 	// c3 := (c2 - 1) / 2
-	c3 := [native.FieldLimbs]uint64{
+	c3 := [native.Field4Limbs]uint64{
 		0x04ca546ec6237590,
 		0x0000000011234c7e,
 		0x0000000000000000,
@@ -106,13 +106,13 @@ func (f pastaFqArithmetic) Sqrt(wasSquare *int, out, arg *[native.FieldLimbs]uin
 	}
 	// c4 := generator
 	// c5 := new(Fq).pow(&generator, c2)
-	c5 := &[native.FieldLimbs]uint64{
+	c5 := &[native.Field4Limbs]uint64{
 		0x218077428c9942de,
 		0xcc49578921b60494,
 		0xac2e5d27b2efbee2,
 		0xb79fa897f2db056,
 	}
-	var z, t, b, c, tv [native.FieldLimbs]uint64
+	var z, t, b, c, tv [native.Field4Limbs]uint64
 
 	native.Pow(&z, arg, &c3, getPastaFqParams(), f)
 	fiatPastaFqSquare((*fiatPastaFqMontgomeryDomainFieldElement)(&t), (*fiatPastaFqMontgomeryDomainFieldElement)(&z))
@@ -127,7 +127,7 @@ func (f pastaFqArithmetic) Sqrt(wasSquare *int, out, arg *[native.FieldLimbs]uin
 			fiatPastaFqSquare((*fiatPastaFqMontgomeryDomainFieldElement)(&b), (*fiatPastaFqMontgomeryDomainFieldElement)(&b))
 		}
 		// if b == 1 flag = 0 else flag = 1
-		flag := -(&native.Field{
+		flag := -(&native.Field4{
 			Value:      b,
 			Params:     getPastaFqParams(),
 			Arithmetic: f,
@@ -140,11 +140,11 @@ func (f pastaFqArithmetic) Sqrt(wasSquare *int, out, arg *[native.FieldLimbs]uin
 		copy(b[:], t[:])
 	}
 	fiatPastaFqSquare((*fiatPastaFqMontgomeryDomainFieldElement)(&c), (*fiatPastaFqMontgomeryDomainFieldElement)(&z))
-	*wasSquare = (&native.Field{
+	*wasSquare = (&native.Field4{
 		Value:      c,
 		Params:     getPastaFqParams(),
 		Arithmetic: f,
-	}).Equal(&native.Field{
+	}).Equal(&native.Field4{
 		Value:      *arg,
 		Params:     getPastaFqParams(),
 		Arithmetic: f,
@@ -152,10 +152,10 @@ func (f pastaFqArithmetic) Sqrt(wasSquare *int, out, arg *[native.FieldLimbs]uin
 	fiatPastaFqSelectznz(out, fiatPastaFqUint1(*wasSquare), out, &z)
 }
 
-func (f pastaFqArithmetic) Invert(wasInverted *int, out, arg *[native.FieldLimbs]uint64) {
-	var t [native.FieldLimbs]uint64
+func (f pastaFqArithmetic) Invert(wasInverted *int, out, arg *[native.Field4Limbs]uint64) {
+	var t [native.Field4Limbs]uint64
 	// computes elem^(p - 2) mod p
-	exp := [native.FieldLimbs]uint64{
+	exp := [native.Field4Limbs]uint64{
 		0x8c46eb20ffffffff,
 		0x224698fc0994a8dd,
 		0x0000000000000000,
@@ -164,7 +164,7 @@ func (f pastaFqArithmetic) Invert(wasInverted *int, out, arg *[native.FieldLimbs
 
 	native.Pow(&t, arg, &exp, getPastaFqParams(), f)
 
-	*wasInverted = (&native.Field{
+	*wasInverted = (&native.Field4{
 		Value:      *arg,
 		Params:     getPastaFqParams(),
 		Arithmetic: f,
@@ -172,21 +172,21 @@ func (f pastaFqArithmetic) Invert(wasInverted *int, out, arg *[native.FieldLimbs
 	fiatPastaFqSelectznz(out, fiatPastaFqUint1(*wasInverted), out, &t)
 }
 
-func (pastaFqArithmetic) FromBytes(out *[native.FieldLimbs]uint64, arg *[native.FieldBytes]byte) {
+func (pastaFqArithmetic) FromBytes(out *[native.Field4Limbs]uint64, arg *[native.Field4Bytes]byte) {
 	fiatPastaFqFromBytes(out, arg)
 }
 
-func (pastaFqArithmetic) ToBytes(out *[native.FieldBytes]byte, arg *[native.FieldLimbs]uint64) {
+func (pastaFqArithmetic) ToBytes(out *[native.Field4Bytes]byte, arg *[native.Field4Limbs]uint64) {
 	fiatPastaFqToBytes(out, arg)
 }
 
-func (pastaFqArithmetic) Selectznz(out, arg1, arg2 *[native.FieldLimbs]uint64, choice int) {
+func (pastaFqArithmetic) Selectznz(out, arg1, arg2 *[native.Field4Limbs]uint64, choice int) {
 	fiatPastaFqSelectznz(out, fiatPastaFqUint1(choice), arg1, arg2)
 }
 
 // generator = 5 mod p is a generator of the `p - 1` order multiplicative
 // subgroup, or in other words a primitive element of the field.
-var generator = [native.FieldLimbs]uint64{0x96bc8c8cffffffed, 0x74c2a54b49f7778e, 0xfffffffffffffffd, 0x3fffffffffffffff}
+var generator = [native.Field4Limbs]uint64{0x96bc8c8cffffffed, 0x74c2a54b49f7778e, 0xfffffffffffffffd, 0x3fffffffffffffff}
 
 // s satisfies the equation 2^s * t = q -1 with t odd.
 var s = 32

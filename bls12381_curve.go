@@ -17,7 +17,7 @@ import (
 var bls12381modulus = bhex("1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab")
 
 type ScalarBls12381 struct {
-	Value *native.Field
+	Value *native.Field4
 	point Point
 }
 
@@ -121,7 +121,7 @@ func (s *ScalarBls12381) Square() Scalar {
 }
 
 func (s *ScalarBls12381) Pow(exp uint64) Scalar {
-	expFieldLimb := [native.FieldLimbs]uint64{exp, 0, 0, 0}
+	expFieldLimb := [native.Field4Limbs]uint64{exp, 0, 0, 0}
 	out := ScalarBls12381{Value: bls12381.FqNew(), point: s.point}
 	native.Pow(&out.Value.Value, &s.Value.Value, &expFieldLimb, s.Value.Params, s.Value.Arithmetic)
 	return &ScalarBls12381{
@@ -494,7 +494,7 @@ func (*PointBls12381G1) CurveName() string {
 
 func (*PointBls12381G1) SumOfProducts(points []Point, scalars []Scalar) Point {
 	nPoints := make([]*bls12381.G1, len(points))
-	nScalars := make([]*native.Field, len(scalars))
+	nScalars := make([]*native.Field4, len(scalars))
 	for i, pt := range points {
 		pp, ok := pt.(*PointBls12381G1)
 		if !ok {
@@ -746,7 +746,7 @@ func (*PointBls12381G2) CurveName() string {
 
 func (*PointBls12381G2) SumOfProducts(points []Point, scalars []Scalar) Point {
 	nPoints := make([]*bls12381.G2, len(points))
-	nScalars := make([]*native.Field, len(scalars))
+	nScalars := make([]*native.Field4, len(scalars))
 	for i, pt := range points {
 		pp, ok := pt.(*PointBls12381G2)
 		if !ok {
@@ -1289,7 +1289,7 @@ func (p *PointBls12381Gt) CurveName() string {
 
 func (p *PointBls12381Gt) SumOfProducts(points []Point, scalars []Scalar) Point {
 	nPoints := make([]*bls12381.Gt, len(points))
-	nScalars := make([]*native.Field, len(scalars))
+	nScalars := make([]*native.Field4, len(scalars))
 
 	for i, pt := range points {
 		pp, ok := pt.(*PointBls12381Gt)

@@ -222,7 +222,7 @@ func (f *fp) toMontgomery(a *fp) *fp {
 // fromMontgomery converts this field from montgomery form.
 func (f *fp) fromMontgomery(a *fp) *fp {
 	// Mul by 1 is division by 2^256 mod q
-	// out.Mul(arg, &[native.FieldLimbs]uint64{1, 0, 0, 0})
+	// out.Mul(arg, &[native.Field4Limbs]uint64{1, 0, 0, 0})
 	return f.montReduce(&[Limbs * 2]uint64{a[0], a[1], a[2], a[3], a[4], a[5], 0, 0, 0, 0, 0, 0})
 }
 
@@ -581,7 +581,7 @@ func (f *fp) BigInt() *big.Int {
 	return new(big.Int).SetBytes(internal.ReverseScalarBytes(buffer[:]))
 }
 
-// Raw converts this element into the a [FieldLimbs]uint64.
+// Raw converts this element into the a [Field4Limbs]uint64.
 func (f *fp) Raw() [Limbs]uint64 {
 	t := new(fp).fromMontgomery(f)
 	return *t

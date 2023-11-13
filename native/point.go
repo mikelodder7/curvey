@@ -41,9 +41,9 @@ const (
 
 // EllipticPoint represents a Weierstrauss elliptic curve point.
 type EllipticPoint struct {
-	X          *Field
-	Y          *Field
-	Z          *Field
+	X          *Field4
+	Y          *Field4
+	Z          *Field4
 	Params     *EllipticPointParams
 	Arithmetic EllipticPointArithmetic
 }
@@ -53,10 +53,10 @@ type EllipticPoint struct {
 // and the prime bit size.
 type EllipticPointParams struct {
 	Name    string
-	A       *Field
-	B       *Field
-	Gx      *Field
-	Gy      *Field
+	A       *Field4
+	B       *Field4
+	Gx      *Field4
+	Gy      *Field4
 	BitSize int
 }
 
@@ -177,7 +177,7 @@ type EllipticPointArithmetic interface {
 	// ToAffine converts arg to affine coordinates storing the result in out
 	ToAffine(out, arg *EllipticPoint)
 	// RhsEquation computes the right-hand side of the ecc equation
-	RhsEquation(out, x *Field)
+	RhsEquation(out, x *Field4)
 }
 
 func (t EllipticPointHashType) String() string {
@@ -215,13 +215,13 @@ func (n EllipticPointHashName) String() string {
 // Random creates a random point on the curve
 // from the specified reader.
 func (p *EllipticPoint) Random(reader io.Reader) (*EllipticPoint, error) {
-	var seed [WideFieldBytes]byte
+	var seed [WideField4Bytes]byte
 	n, err := reader.Read(seed[:])
 	if err != nil {
 		return nil, errors.Wrap(err, "random could not read from stream")
 	}
-	if n != WideFieldBytes {
-		return nil, fmt.Errorf("insufficient bytes read %d when %d are needed", n, WideFieldBytes)
+	if n != WideField4Bytes {
+		return nil, fmt.Errorf("insufficient bytes read %d when %d are needed", n, WideField4Bytes)
 	}
 	dst := []byte(fmt.Sprintf("%s_XMD:SHA-256_SSWU_RO_", p.Params.Name))
 	err = p.Arithmetic.Hash(p, EllipticPointHasherSha256(), seed[:], dst)
@@ -291,7 +291,7 @@ func (p *EllipticPoint) Sub(lhs, rhs *EllipticPoint) *EllipticPoint {
 }
 
 // Mul multiplies this point by the input scalar.
-func (p *EllipticPoint) Mul(point *EllipticPoint, scalar *Field) *EllipticPoint {
+func (p *EllipticPoint) Mul(point *EllipticPoint, scalar *Field4) *EllipticPoint {
 	bytes := scalar.Bytes()
 	precomputed := [16]*EllipticPoint{}
 	precomputed[0] = new(EllipticPoint).Set(point).Identity()
@@ -314,7 +314,7 @@ func (p *EllipticPoint) Mul(point *EllipticPoint, scalar *Field) *EllipticPoint 
 
 // Equal returns 1 if the two points are equal 0 otherwise.
 func (p *EllipticPoint) Equal(rhs *EllipticPoint) int {
-	var x1, x2, y1, y2 Field
+	var x1, x2, y1, y2 Field4
 
 	x1.Arithmetic = p.X.Arithmetic
 	x2.Arithmetic = p.X.Arithmetic
@@ -336,9 +336,9 @@ func (p *EllipticPoint) Equal(rhs *EllipticPoint) int {
 
 // Set copies clone into p.
 func (p *EllipticPoint) Set(clone *EllipticPoint) *EllipticPoint {
-	p.X = new(Field).Set(clone.X)
-	p.Y = new(Field).Set(clone.Y)
-	p.Z = new(Field).Set(clone.Z)
+	p.X = new(Field4).Set(clone.X)
+	p.Y = new(Field4).Set(clone.Y)
+	p.Z = new(Field4).Set(clone.Z)
 	p.Params = clone.Params
 	p.Arithmetic = clone.Arithmetic
 	return p
@@ -356,20 +356,20 @@ func (p *EllipticPoint) BigInt() (x, y *big.Int) {
 // SetBigInt creates a point from affine x, y
 // and returns the point if it is on the curve.
 func (p *EllipticPoint) SetBigInt(x, y *big.Int) (*EllipticPoint, error) {
-	xx := &Field{
+	xx := &Field4{
 		Params:     p.Params.Gx.Params,
 		Arithmetic: p.Params.Gx.Arithmetic,
 	}
 	xx.SetBigInt(x)
-	yy := &Field{
+	yy := &Field4{
 		Params:     p.Params.Gx.Params,
 		Arithmetic: p.Params.Gx.Arithmetic,
 	}
 	yy.SetBigInt(y)
 	pp := new(EllipticPoint).Set(p)
 
-	zero := new(Field).Set(xx).SetZero()
-	one := new(Field).Set(xx).SetOne()
+	zero := new(Field4).Set(xx).SetZero()
+	one := new(Field4).Set(xx).SetOne()
 	isIdentity := xx.IsZero() & yy.IsZero()
 	pp.X = xx.CMove(xx, zero, isIdentity)
 	pp.Y = yy.CMove(yy, zero, isIdentity)
@@ -381,14 +381,14 @@ func (p *EllipticPoint) SetBigInt(x, y *big.Int) (*EllipticPoint, error) {
 }
 
 // GetX returns the affine X coordinate.
-func (p *EllipticPoint) GetX() *Field {
+func (p *EllipticPoint) GetX() *Field4 {
 	t := new(EllipticPoint).Set(p)
 	p.Arithmetic.ToAffine(t, p)
 	return t.X
 }
 
 // GetY returns the affine Y coordinate.
-func (p *EllipticPoint) GetY() *Field {
+func (p *EllipticPoint) GetY() *Field4 {
 	t := new(EllipticPoint).Set(p)
 	p.Arithmetic.ToAffine(t, p)
 	return t.Y
@@ -408,7 +408,7 @@ func (p *EllipticPoint) ToAffine(clone *EllipticPoint) *EllipticPoint {
 // SumOfProducts computes the multi-exponentiation for the specified
 // points and scalars and stores the result in `p`.
 // Returns an error if the lengths of the arguments is not equal.
-func (p *EllipticPoint) SumOfProducts(points []*EllipticPoint, scalars []*Field) (*EllipticPoint, error) {
+func (p *EllipticPoint) SumOfProducts(points []*EllipticPoint, scalars []*Field4) (*EllipticPoint, error) {
 	const Upper = 256
 	const W = 4
 	const Windows = Upper / W // careful--use ceiling division in case this doesn't divide evenly

@@ -153,10 +153,10 @@ func TestFqNeg(t *testing.T) {
 	g := PastaFqNew().SetRaw(&generator)
 	a := PastaFqNew().SetOne()
 	a.Neg(a)
-	e := PastaFqNew().SetRaw(&[native.FieldLimbs]uint64{0x311bac8400000004, 0x891a63f02652a376, 0, 0})
+	e := PastaFqNew().SetRaw(&[native.Field4Limbs]uint64{0x311bac8400000004, 0x891a63f02652a376, 0, 0})
 	require.Equal(t, e, a)
 	a.Neg(g)
-	e = PastaFqNew().SetRaw(&[native.FieldLimbs]uint64{0xf58a5e9400000014, 0xad83f3b0bf9d314e, 0x2, 0x0})
+	e = PastaFqNew().SetRaw(&[native.Field4Limbs]uint64{0xf58a5e9400000014, 0xad83f3b0bf9d314e, 0x2, 0x0})
 	require.Equal(t, e, a)
 }
 
@@ -180,14 +180,14 @@ func TestFqSqrt(t *testing.T) {
 }
 
 func TestFqInvert(t *testing.T) {
-	twoInv := PastaFqNew().SetLimbs(&[native.FieldLimbs]uint64{0xc623759080000001, 0x11234c7e04ca546e, 0x0000000000000000, 0x2000000000000000})
+	twoInv := PastaFqNew().SetLimbs(&[native.Field4Limbs]uint64{0xc623759080000001, 0x11234c7e04ca546e, 0x0000000000000000, 0x2000000000000000})
 	two := PastaFqNew().SetUint64(2)
 	a, inverted := PastaFqNew().Invert(two)
 	require.True(t, inverted)
 	require.Equal(t, a, twoInv)
 
-	rootOfUnity := PastaFqNew().SetLimbs(&[native.FieldLimbs]uint64{0xa70e2c1102b6d05f, 0x9bb97ea3c106f049, 0x9e5c4dfd492ae26e, 0x2de6a9b8746d3f58})
-	rootOfUnityInv := PastaFqNew().SetLimbs(&[native.FieldLimbs]uint64{0x57eecda0a84b6836, 0x4ad38b9084b8a80c, 0xf4c8f353124086c1, 0x2235e1a7415bf936})
+	rootOfUnity := PastaFqNew().SetLimbs(&[native.Field4Limbs]uint64{0xa70e2c1102b6d05f, 0x9bb97ea3c106f049, 0x9e5c4dfd492ae26e, 0x2de6a9b8746d3f58})
+	rootOfUnityInv := PastaFqNew().SetLimbs(&[native.Field4Limbs]uint64{0x57eecda0a84b6836, 0x4ad38b9084b8a80c, 0xf4c8f353124086c1, 0x2235e1a7415bf936})
 	a, inverted = PastaFqNew().Invert(rootOfUnity)
 	require.True(t, inverted)
 	require.Equal(t, a, rootOfUnityInv)
@@ -231,7 +231,7 @@ func TestFqBigInt(t *testing.T) {
 	t2 := PastaFqNew().SetBigInt(t1.BigInt())
 	require.Equal(t, t1, t2)
 
-	e := PastaFqNew().SetRaw(&[native.FieldLimbs]uint64{0x7bb1416dea3d6ae3, 0x62f9108a340aa525, 0x303b3f30fcaa477f, 0x11c9ef5422d80a4d})
+	e := PastaFqNew().SetRaw(&[native.Field4Limbs]uint64{0x7bb1416dea3d6ae3, 0x62f9108a340aa525, 0x303b3f30fcaa477f, 0x11c9ef5422d80a4d})
 	b := new(big.Int).SetBytes([]byte{9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9})
 	t1.SetBigInt(b)
 	require.Equal(t, e, t1)
@@ -245,7 +245,7 @@ func TestFqBigInt(t *testing.T) {
 }
 
 func TestFqSetBytesWide(t *testing.T) {
-	e := PastaFqNew().SetLimbs(&[native.FieldLimbs]uint64{0xe22bd0d1b22cc43e, 0x6b84e5b52490a7c8, 0x264262941ac9e229, 0x27dcfdf361ce4254})
+	e := PastaFqNew().SetLimbs(&[native.Field4Limbs]uint64{0xe22bd0d1b22cc43e, 0x6b84e5b52490a7c8, 0x264262941ac9e229, 0x27dcfdf361ce4254})
 	a := PastaFqNew().SetBytesWide(&[64]byte{
 		0x69, 0x23, 0x5a, 0x0b, 0xce, 0x0c, 0xa8, 0x64,
 		0x3c, 0x78, 0xbc, 0x01, 0x05, 0xef, 0xf2, 0x84,

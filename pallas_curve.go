@@ -90,7 +90,7 @@ func (*PallasCurve) ScalarMult(bx, by *big.Int, k []byte) (*big.Int, *big.Int) {
 	if err != nil {
 		return nil, nil
 	}
-	var blob [native.FieldBytes]byte
+	var blob [native.Field4Bytes]byte
 	copy(blob[:], k)
 	sc, err := fq.PastaFqNew().SetBytes(&blob)
 	if err != nil {
@@ -100,7 +100,7 @@ func (*PallasCurve) ScalarMult(bx, by *big.Int, k []byte) (*big.Int, *big.Int) {
 }
 
 func (*PallasCurve) ScalarBaseMult(k []byte) (*big.Int, *big.Int) {
-	var blob [native.FieldBytes]byte
+	var blob [native.Field4Bytes]byte
 	copy(blob[:], k)
 	sc, err := fq.PastaFqNew().SetBytes(&blob)
 	if err != nil {
@@ -175,7 +175,7 @@ func (PallasScalar) IsValid(x *big.Int) bool {
 
 // ScalarPallas - New interface.
 type ScalarPallas struct {
-	Value *native.Field
+	Value *native.Field4
 }
 
 func (s *ScalarPallas) Random(reader io.Reader) Scalar {
@@ -248,7 +248,7 @@ func (s *ScalarPallas) Square() Scalar {
 }
 
 func (s *ScalarPallas) Pow(exp uint64) Scalar {
-	expFieldLimb := [native.FieldLimbs]uint64{exp, 0, 0, 0}
+	expFieldLimb := [native.Field4Limbs]uint64{exp, 0, 0, 0}
 	out := ScalarPallas{Value: fq.PastaFqNew()}
 	native.Pow(&out.Value.Value, &s.Value.Value, &expFieldLimb, s.Value.Params, s.Value.Arithmetic)
 	return &ScalarPallas{
@@ -454,12 +454,12 @@ type PointPallas struct {
 }
 
 func (p *PointPallas) Random(reader io.Reader) Point {
-	var seed [2 * native.FieldBytes]byte
+	var seed [2 * native.Field4Bytes]byte
 	n, err := reader.Read(seed[:])
 	if err != nil {
 		return nil
 	}
-	if n != 2*native.FieldBytes {
+	if n != 2*native.Field4Bytes {
 		return nil
 	}
 	return p.Hash(seed[:])
@@ -526,7 +526,7 @@ func (p *PointPallas) Equal(rhs Point) bool {
 	if !ok {
 		return false
 	}
-	var x1, x2, y1, y2, z1, z2 [native.FieldLimbs]uint64
+	var x1, x2, y1, y2, z1, z2 [native.Field4Limbs]uint64
 
 	u := p.EllipticPoint.X.Arithmetic
 
@@ -649,7 +649,7 @@ func (p *PointPallas) SumOfProducts(points []Point, scalars []Scalar) Point {
 		}
 		eps[i] = ps.EllipticPoint
 	}
-	scs := make([]*native.Field, len(scalars))
+	scs := make([]*native.Field4, len(scalars))
 	for i, sc := range scalars {
 		ss, ok := sc.(*ScalarPallas)
 		if !ok {
@@ -715,10 +715,10 @@ func (p *PointPallas) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-func (p *PointPallas) X() *native.Field {
+func (p *PointPallas) X() *native.Field4 {
 	return p.GetX()
 }
 
-func (p *PointPallas) Y() *native.Field {
+func (p *PointPallas) Y() *native.Field4 {
 	return p.GetY()
 }

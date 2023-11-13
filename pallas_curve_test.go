@@ -59,19 +59,19 @@ func TestPointPallasRandom(t *testing.T) {
 	require.NotNil(t, a.EllipticPoint.Z)
 	require.True(t, a.IsOnCurve())
 	e := native.EllipticPoint{
-		X: fp.PastaFpNew().SetRaw(&[native.FieldLimbs]uint64{
+		X: fp.PastaFpNew().SetRaw(&[native.Field4Limbs]uint64{
 			0x7263083d01d4859c,
 			0x65a03323b5a3d204,
 			0xe71d73222b136668,
 			0x1d1b1bcf1256b539,
 		}),
-		Y: fp.PastaFpNew().SetRaw(&[native.FieldLimbs]uint64{
+		Y: fp.PastaFpNew().SetRaw(&[native.Field4Limbs]uint64{
 			0x8cc2516ffe23e1bb,
 			0x5418f941eeaca812,
 			0x16c9af658a846f29,
 			0x11c572091c418668,
 		}),
-		Z: fp.PastaFpNew().SetRaw(&[native.FieldLimbs]uint64{
+		Z: fp.PastaFpNew().SetRaw(&[native.Field4Limbs]uint64{
 			0xa879589adb77a88e,
 			0x5444a531a19f2406,
 			0x637ff77c51dda524,
