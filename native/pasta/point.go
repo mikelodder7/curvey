@@ -9,15 +9,15 @@ import (
 
 var (
 	pallasPointInitonce sync.Once
-	pallasPointParams   native.EllipticPointParams
+	pallasPointParams   native.EllipticPoint4Params
 )
 
 type PallasEllipticPoint struct {
-	native.EllipticPoint
+	native.EllipticPoint4
 }
 
-func PointNew() *native.EllipticPoint {
-	return &native.EllipticPoint{
+func PointNew() *native.EllipticPoint4 {
+	return &native.EllipticPoint4{
 		X:          fp.PastaFpNew(),
 		Y:          fp.PastaFpNew(),
 		Z:          fp.PastaFpNew(),
@@ -27,7 +27,7 @@ func PointNew() *native.EllipticPoint {
 }
 
 func pallasPointParamsInit() {
-	pallasPointParams = native.EllipticPointParams{
+	pallasPointParams = native.EllipticPoint4Params{
 		A:       fp.PastaFpNew().SetZero(),
 		B:       fp.PastaFpNew().SetUint64(5),
 		Gx:      fp.PastaFpNew().SetOne(),
@@ -37,14 +37,14 @@ func pallasPointParamsInit() {
 	}
 }
 
-func getPallasPointParams() *native.EllipticPointParams {
+func getPallasPointParams() *native.EllipticPoint4Params {
 	pallasPointInitonce.Do(pallasPointParamsInit)
 	return &pallasPointParams
 }
 
 type pallasPointArithmetic struct{}
 
-func (pallasPointArithmetic) Hash(out *native.EllipticPoint, hash *native.EllipticPointHasher, msg, dst []byte) error {
+func (pallasPointArithmetic) Hash(out *native.EllipticPoint4, hash *native.EllipticPointHasher, msg, dst []byte) error {
 	var u []byte
 
 	switch hash.Type() {
@@ -71,7 +71,7 @@ func (pallasPointArithmetic) Hash(out *native.EllipticPoint, hash *native.Ellipt
 	return nil
 }
 
-func (pallasPointArithmetic) Double(out, arg *native.EllipticPoint) {
+func (pallasPointArithmetic) Double(out, arg *native.EllipticPoint4) {
 	var a, b, c, d, e, f, x, y, z [native.Field4Limbs]uint64
 	u := arg.X.Arithmetic
 
@@ -109,7 +109,7 @@ func (pallasPointArithmetic) Double(out, arg *native.EllipticPoint) {
 	u.Selectznz(&out.Z.Value, &z, &arg.Z.Value, e1)
 }
 
-func (p pallasPointArithmetic) Add(out, arg1, arg2 *native.EllipticPoint) {
+func (p pallasPointArithmetic) Add(out, arg1, arg2 *native.EllipticPoint4) {
 	e1 := arg1.Z.IsZero()
 	e2 := arg2.Z.IsZero()
 
@@ -183,7 +183,7 @@ func (p pallasPointArithmetic) Add(out, arg1, arg2 *native.EllipticPoint) {
 	a.Selectznz(&out.Z.Value, &out.Z.Value, &z3, e1&e2&e3)
 }
 
-func (pallasPointArithmetic) IsOnCurve(arg *native.EllipticPoint) bool {
+func (pallasPointArithmetic) IsOnCurve(arg *native.EllipticPoint4) bool {
 	var z2, z4, z6, x2, x3, lhs, rhs [native.Field4Limbs]uint64
 
 	u := arg.X.Arithmetic
@@ -205,7 +205,7 @@ func (pallasPointArithmetic) IsOnCurve(arg *native.EllipticPoint) bool {
 	return arg.Z.IsZero()|e == 1
 }
 
-func (pallasPointArithmetic) ToAffine(out, arg *native.EllipticPoint) {
+func (pallasPointArithmetic) ToAffine(out, arg *native.EllipticPoint4) {
 	var wasInverted int
 	var zero, x, y, z, zinv [native.Field4Limbs]uint64
 	f := arg.X.Arithmetic
@@ -233,7 +233,7 @@ func (pallasPointArithmetic) RhsEquation(out, x *native.Field4) {
 	out.Add(out, getPallasPointParams().B)
 }
 
-func mapSswu(p *native.EllipticPoint, u *native.Field4) {
+func mapSswu(p *native.EllipticPoint4, u *native.Field4) {
 	isoa := [native.Field4Limbs]uint64{0x7fc5d29077bb08de, 0x93090252cf122108, 0x49f63ff5da1145bb, 0x1c6d4f087137f0dc}
 	isob := [native.Field4Limbs]uint64{0xf7f22478ffffec3d, 0xa6dec35433e1339b, 0xfffffffffffffd5a, 0x3fffffffffffffff}
 	z := [native.Field4Limbs]uint64{0x1d2df02400000034, 0xf6571331e3a2999b, 0x0000000000000006, 0x0000000000000000}
@@ -312,7 +312,7 @@ var isomapper = [13][native.Field4Limbs]uint64{
 // Implements a degree 3 isogeny map.
 // The input and output are in Jacobian coordinates, using the method
 // in "Avoiding inversions" [WB2019, section 4.3].
-func isoMap(out, arg *native.EllipticPoint) {
+func isoMap(out, arg *native.EllipticPoint4) {
 	var z [4][native.Field4Limbs]uint64
 	var numX, divX, numY, divY, t, z0, x, y [native.Field4Limbs]uint64
 	a := arg.X.Arithmetic

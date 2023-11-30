@@ -111,78 +111,65 @@ func (p384FpArithmetic) Sub(out, arg1, arg2 *[native.Field6Limbs]uint64) {
 func (p p384FpArithmetic) Sqrt(wasSquare *int, out, arg *[native.Field6Limbs]uint64) {
 	// p mod 4 = 3 -> compute sqrt(x) using x^((p+1)/4) =
 	// x^9850501549098619803069760025035903451269934817616361666987073351061430442874217582261816522064734500465401743278080
-	var t, tt, t1, t10, t11, t110, t111 [native.Field6Limbs]uint64
-	var t111000, t111111, t1111110, t1111111 [native.Field6Limbs]uint64
+	var t, t1, t10, t11, t110, t111, t111000, t111111, t1111110, t1111111 [native.Field6Limbs]uint64
 	var x12, x24, x31, x32, x63, x126, x252, x255, x [native.Field6Limbs]uint64
-	copy(t1[:], arg[:])
-	Square((*MontgomeryDomainFieldElement)(&t10), (*MontgomeryDomainFieldElement)(&t1))
-	Mul((*MontgomeryDomainFieldElement)(&t11), (*MontgomeryDomainFieldElement)(&t1), (*MontgomeryDomainFieldElement)(&t10))
-	Square((*MontgomeryDomainFieldElement)(&t110), (*MontgomeryDomainFieldElement)(&t11))
-	Mul((*MontgomeryDomainFieldElement)(&t111), (*MontgomeryDomainFieldElement)(&t1), (*MontgomeryDomainFieldElement)(&t110))
-	native.Pow2k6(&t111000, &t111, 3, p)
-	Mul((*MontgomeryDomainFieldElement)(&t111111), (*MontgomeryDomainFieldElement)(&t111), (*MontgomeryDomainFieldElement)(&t111000))
-	Square((*MontgomeryDomainFieldElement)(&t1111110), (*MontgomeryDomainFieldElement)(&t111111))
-	Mul((*MontgomeryDomainFieldElement)(&t1111111), (*MontgomeryDomainFieldElement)(&t1), (*MontgomeryDomainFieldElement)(&t1111110))
 
-	native.Pow2k6(&t1111110, &t1111110, 5, p)
-	Mul((*MontgomeryDomainFieldElement)(&x12), (*MontgomeryDomainFieldElement)(&t1111110), (*MontgomeryDomainFieldElement)(&t111111))
+	copy(t1[:], arg[:])
+
+	p.Square(&t10, &t1)
+	p.Mul(&t11, &t1, &t10)
+	p.Square(&t110, &t11)
+	p.Mul(&t111, &t1, &t110)
+	native.Pow2k6(&t111000, &t111, 3, p)
+	p.Mul(&t111111, &t111, &t111000)
+	p.Square(&t1111110, &t111111)
+	p.Mul(&t1111111, &t1, &t1111110)
+	native.Pow2k6(&t, &t1111110, 5, p)
+	p.Mul(&x12, &t, &t111111)
 	native.Pow2k6(&t, &x12, 12, p)
-	Mul((*MontgomeryDomainFieldElement)(&x24), (*MontgomeryDomainFieldElement)(&t), (*MontgomeryDomainFieldElement)(&x12))
+	p.Mul(&x24, &t, &x12)
 	native.Pow2k6(&t, &x24, 7, p)
-	Mul((*MontgomeryDomainFieldElement)(&x31), (*MontgomeryDomainFieldElement)(&t), (*MontgomeryDomainFieldElement)(&t1111111))
-	Square((*MontgomeryDomainFieldElement)(&x32), (*MontgomeryDomainFieldElement)(&x31))
-	Mul((*MontgomeryDomainFieldElement)(&x32), (*MontgomeryDomainFieldElement)(&x32), (*MontgomeryDomainFieldElement)(&t1))
+	p.Mul(&x31, &t, &t1111111)
+	p.Square(&t, &x31)
+	p.Mul(&x32, &t, &t1)
 	native.Pow2k6(&t, &x32, 31, p)
-	Mul((*MontgomeryDomainFieldElement)(&x63), (*MontgomeryDomainFieldElement)(&t), (*MontgomeryDomainFieldElement)(&x31))
+	p.Mul(&x63, &t, &x31)
 	native.Pow2k6(&t, &x63, 63, p)
-	Mul((*MontgomeryDomainFieldElement)(&x126), (*MontgomeryDomainFieldElement)(&t), (*MontgomeryDomainFieldElement)(&x63))
+	p.Mul(&x126, &t, &x63)
 	native.Pow2k6(&t, &x126, 126, p)
-	Mul((*MontgomeryDomainFieldElement)(&x252), (*MontgomeryDomainFieldElement)(&t), (*MontgomeryDomainFieldElement)(&x126))
+	p.Mul(&x252, &t, &x126)
 	native.Pow2k6(&t, &x252, 3, p)
-	Mul((*MontgomeryDomainFieldElement)(&x255), (*MontgomeryDomainFieldElement)(&t), (*MontgomeryDomainFieldElement)(&t111))
+	p.Mul(&x255, &t, &t111)
+
 	native.Pow2k6(&t, &x255, 33, p)
-	Mul((*MontgomeryDomainFieldElement)(&tt), (*MontgomeryDomainFieldElement)(&t), (*MontgomeryDomainFieldElement)(&x32))
-	native.Pow2k6(&t, &tt, 64, p)
-	Mul((*MontgomeryDomainFieldElement)(&tt), (*MontgomeryDomainFieldElement)(&t), (*MontgomeryDomainFieldElement)(&t1))
-	native.Pow2k6(&x, &tt, 30, p)
-	Square((*MontgomeryDomainFieldElement)(&t), (*MontgomeryDomainFieldElement)(&x))
-	*wasSquare = (&native.Field6{Value: t1, Params: getP384FpParams(), Arithmetic: p}).Equal(&native.Field6{
-		Value: x, Params: getP384FpParams(), Arithmetic: p,
+	p.Mul(&x, &t, &x32)
+	native.Pow2k6(&t, &x, 64, p)
+	p.Mul(&t, &t, &t1)
+	native.Pow2k6(&x, &t, 30, p)
+	p.Square(&t, &x)
+
+	*wasSquare = (&native.Field6{Value: t, Params: getP384FpParams(), Arithmetic: p}).Equal(&native.Field6{
+		Value: *arg, Params: getP384FpParams(), Arithmetic: p,
 	})
 	Selectznz(out, uint1(*wasSquare), out, &x)
 }
 
 // Invert performs modular inverse.
 func (p p384FpArithmetic) Invert(wasInverted *int, out, arg *[native.Field6Limbs]uint64) {
-	// Implement bernstein yang invert method 2019 p.366
-	const ITERATIONS = (49*384 + 57) / 17
-	var a, v, r, out4, out5 [native.Field6Limbs]uint64
-	var f, g, out2, out3 [native.Field6Limbs + 1]uint64
-	var out1 uint64
-	p.FromMontgomery(&a, arg)
-	SetOne((*MontgomeryDomainFieldElement)(&r))
-	Msat(&f)
-	d := uint64(1)
-	copy(g[:native.Field6Limbs], a[:])
-
-	for i := 0; i < ITERATIONS-ITERATIONS%2; i += 2 {
-		Divstep(&out1, &out2, &out3, &out4, &out5, d, &f, &g, &v, &r)
-		Divstep(&d, &f, &g, &v, &r, out1, &out2, &out3, &out4, &out5)
-	}
-
-	Divstep(&out1, &f, &out3, &v, &out5, d, &f, &g, &v, &r)
-
-	s := (f[len(f)-1] >> 63) & 1
-	p.Neg(&a, &v)
-	Selectznz(&v, uint1(s), &v, &a)
-	DivstepPrecomp(&a)
-	p.Mul(&v, &v, &a)
-	*wasInverted = (&native.Field6{
-		Value:      *arg,
-		Params:     getP384FpParams(),
-		Arithmetic: p,
-	}).IsNonZero()
-	Selectznz(out, uint1(*wasInverted), out, &v)
+	// Exponentiate by p - 2
+	var t [native.Field6Limbs]uint64
+	f := P384FpNew()
+	f.Value = *arg
+	*wasInverted = f.IsNonZero()
+	native.Pow6(&t, arg, &[native.Field6Limbs]uint64{
+		0x00000000fffffffd,
+		0xffffffff00000000,
+		0xfffffffffffffffe,
+		0xffffffffffffffff,
+		0xffffffffffffffff,
+		0xffffffffffffffff,
+	}, f.Params, p)
+	p.Selectznz(out, arg, &t, *wasInverted)
 }
 
 // FromBytes converts a little endian byte array into a field element.

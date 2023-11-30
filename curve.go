@@ -29,6 +29,9 @@ var (
 	p256Initonce sync.Once
 	p256         Curve
 
+	p384Initonce sync.Once
+	p384         Curve
+
 	ed25519Initonce sync.Once
 	ed25519         Curve
 
@@ -42,11 +45,10 @@ const (
 	BLS12381G2Name = "BLS12381G2"
 	BLS12831Name   = "BLS12831"
 	P256Name       = "P-256"
+	P384Name       = "P-384"
 	ED25519Name    = "ed25519"
 	PallasName     = "pallas"
 )
-
-const scalarBytes = 32
 
 // Scalar represents an element of the scalar field \mathbb{F}_q
 // of the elliptic curve construction.
@@ -139,23 +141,20 @@ func unmarshalScalar(input []byte) (*Curve, []byte, error) {
 }
 
 func ScalarMarshalBinary(scalar Scalar) ([]byte, error) {
-	// All scalars are 32 bytes long
-	// The last 32 bytes are the actual value
+	// The last bytes are the actual value
 	// The first remaining bytes are the curve name
 	// separated by a colon
+	scalarBytes := scalar.Bytes()
 	name := []byte(scalar.Point().CurveName())
-	output := make([]byte, len(name)+1+scalarBytes)
+	output := make([]byte, len(name)+1+len(scalarBytes))
 	copy(output[:len(name)], name)
 	output[len(name)] = byte(':')
-	copy(output[len(name)+1:], scalar.Bytes())
+	copy(output[len(name)+1:], scalarBytes)
 	return output, nil
 }
 
 func ScalarUnmarshalBinary(input []byte) (Scalar, error) {
-	// All scalars are 32 bytes long
-	// The first 32 bytes are the actual value
-	// The remaining bytes are the curve name
-	if len(input) < scalarBytes+1+len(P256Name) {
+	if len(input) < 32+1+len(P256Name) {
 		return nil, fmt.Errorf("invalid byte sequence")
 	}
 	sc, data, err := unmarshalScalar(input)
@@ -166,32 +165,32 @@ func ScalarUnmarshalBinary(input []byte) (Scalar, error) {
 }
 
 func ScalarMarshalText(scalar Scalar) ([]byte, error) {
-	// All scalars are 32 bytes long
 	// For text encoding we put the curve name first for readability
 	// separated by a colon, then the hex encoding of the scalar
 	// which avoids the base64 weakness with strict mode or not
+	scalarBytes := scalar.Bytes()
 	name := []byte(scalar.Point().CurveName())
-	output := make([]byte, len(name)+1+scalarBytes*2)
+	output := make([]byte, len(name)+1+len(scalarBytes)*2)
 	copy(output[:len(name)], name)
 	output[len(name)] = byte(':')
-	_ = hex.Encode(output[len(name)+1:], scalar.Bytes())
+	_ = hex.Encode(output[len(name)+1:], scalarBytes)
 	return output, nil
 }
 
 func ScalarUnmarshalText(input []byte) (Scalar, error) {
-	if len(input) < scalarBytes*2+len(P256Name)+1 {
+	if len(input) < 32*2+len(P256Name)+1 {
 		return nil, fmt.Errorf("invalid byte sequence")
 	}
 	curve, data, err := unmarshalScalar(input)
 	if err != nil {
 		return nil, err
 	}
-	var t [scalarBytes]byte
-	_, err = hex.Decode(t[:], data)
+	t := make([]byte, len(data)/2)
+	_, err = hex.Decode(t, data)
 	if err != nil {
 		return nil, err
 	}
-	return curve.Scalar.SetBytes(t[:])
+	return curve.Scalar.SetBytes(t)
 }
 
 func ScalarMarshalJSON(scalar Scalar) ([]byte, error) {
@@ -270,7 +269,7 @@ func PointMarshalBinary(point Point) ([]byte, error) {
 }
 
 func PointUnmarshalBinary(input []byte) (Point, error) {
-	if len(input) < scalarBytes+1+len(P256Name) {
+	if len(input) < 32+1+len(P256Name) {
 		return nil, fmt.Errorf("invalid byte sequence")
 	}
 	sep := byte(':')
@@ -303,7 +302,7 @@ func PointMarshalText(point Point) ([]byte, error) {
 }
 
 func PointUnmarshalText(input []byte) (Point, error) {
-	if len(input) < scalarBytes*2+1+len(P256Name) {
+	if len(input) < 32*2+1+len(P256Name) {
 		return nil, fmt.Errorf("invalid byte sequence")
 	}
 	sep := byte(':')
@@ -478,6 +477,8 @@ func GetCurveByName(name string) *Curve {
 		return BLS12381G2()
 	case BLS12831Name:
 		return BLS12381G1()
+	case P384Name:
+		return P384()
 	case P256Name:
 		return P256()
 	case ED25519Name:
@@ -579,6 +580,19 @@ func p256Init() {
 		Scalar: new(ScalarP256).Zero(),
 		Point:  new(PointP256).Identity(),
 		Name:   P256Name,
+	}
+}
+
+func P384() *Curve {
+	p384Initonce.Do(p384Init)
+	return &p384
+}
+
+func p384Init() {
+	p384 = Curve{
+		Scalar: new(ScalarP384).Zero(),
+		Point:  new(PointP384).Identity(),
+		Name:   P384Name,
 	}
 }
 

@@ -105,7 +105,7 @@ type ScalarK256 struct {
 }
 
 type PointK256 struct {
-	value *native.EllipticPoint
+	value *native.EllipticPoint4
 }
 
 func (s *ScalarK256) Random(reader io.Reader) Scalar {
@@ -589,7 +589,7 @@ func (p *PointK256) CurveName() string {
 }
 
 func (*PointK256) SumOfProducts(points []Point, scalars []Scalar) Point {
-	nPoints := make([]*native.EllipticPoint, len(points))
+	nPoints := make([]*native.EllipticPoint4, len(points))
 	nScalars := make([]*native.Field4, len(scalars))
 	for i, pt := range points {
 		ptv, ok := pt.(*PointK256)

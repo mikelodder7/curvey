@@ -450,7 +450,7 @@ func (s *ScalarPallas) UnmarshalJSON(input []byte) error {
 }
 
 type PointPallas struct {
-	*native.EllipticPoint
+	*native.EllipticPoint4
 }
 
 func (p *PointPallas) Random(reader io.Reader) Point {
@@ -486,7 +486,7 @@ func (p *PointPallas) IsNegative() bool {
 }
 
 func (p *PointPallas) Double() Point {
-	return &PointPallas{pasta.PointNew().Double(p.EllipticPoint)}
+	return &PointPallas{pasta.PointNew().Double(p.EllipticPoint4)}
 }
 
 func (*PointPallas) Scalar() Scalar {
@@ -494,7 +494,7 @@ func (*PointPallas) Scalar() Scalar {
 }
 
 func (p *PointPallas) Neg() Point {
-	return &PointPallas{pasta.PointNew().Neg(p.EllipticPoint)}
+	return &PointPallas{pasta.PointNew().Neg(p.EllipticPoint4)}
 }
 
 func (p *PointPallas) Add(rhs Point) Point {
@@ -502,7 +502,7 @@ func (p *PointPallas) Add(rhs Point) Point {
 	if !ok {
 		return nil
 	}
-	return &PointPallas{pasta.PointNew().Add(p.EllipticPoint, r.EllipticPoint)}
+	return &PointPallas{pasta.PointNew().Add(p.EllipticPoint4, r.EllipticPoint4)}
 }
 
 func (p *PointPallas) Sub(rhs Point) Point {
@@ -510,7 +510,7 @@ func (p *PointPallas) Sub(rhs Point) Point {
 	if !ok {
 		return nil
 	}
-	return &PointPallas{pasta.PointNew().Sub(p.EllipticPoint, r.EllipticPoint)}
+	return &PointPallas{pasta.PointNew().Sub(p.EllipticPoint4, r.EllipticPoint4)}
 }
 
 func (p *PointPallas) Mul(rhs Scalar) Point {
@@ -518,7 +518,7 @@ func (p *PointPallas) Mul(rhs Scalar) Point {
 	if !ok {
 		return nil
 	}
-	return &PointPallas{pasta.PointNew().Mul(p.EllipticPoint, s.Value)}
+	return &PointPallas{pasta.PointNew().Mul(p.EllipticPoint4, s.Value)}
 }
 
 func (p *PointPallas) Equal(rhs Point) bool {
@@ -528,19 +528,19 @@ func (p *PointPallas) Equal(rhs Point) bool {
 	}
 	var x1, x2, y1, y2, z1, z2 [native.Field4Limbs]uint64
 
-	u := p.EllipticPoint.X.Arithmetic
+	u := p.EllipticPoint4.X.Arithmetic
 
 	u.Square(&z1, &p.Z.Value)
 	u.Square(&z2, &r.Z.Value)
 
-	u.Mul(&x1, &p.EllipticPoint.X.Value, &z2)
-	u.Mul(&x2, &r.EllipticPoint.X.Value, &z1)
+	u.Mul(&x1, &p.EllipticPoint4.X.Value, &z2)
+	u.Mul(&x2, &r.EllipticPoint4.X.Value, &z1)
 
 	u.Mul(&z1, &z1, &p.Z.Value)
 	u.Mul(&z2, &z2, &r.Z.Value)
 
-	u.Mul(&y1, &p.EllipticPoint.Y.Value, &z2)
-	u.Mul(&y2, &r.EllipticPoint.Y.Value, &z1)
+	u.Mul(&y1, &p.EllipticPoint4.Y.Value, &z2)
+	u.Mul(&y2, &r.EllipticPoint4.Y.Value, &z1)
 
 	e1 := p.Z.IsZero()
 	e2 := r.Z.IsZero()
@@ -568,7 +568,7 @@ func (p *PointPallas) ToAffineCompressed() []byte {
 	// and the top bit represents the sign of y and the
 	// remainder represent the x-coordinate
 	var inf [32]byte
-	p1 := pasta.PointNew().ToAffine(p.EllipticPoint)
+	p1 := pasta.PointNew().ToAffine(p.EllipticPoint4)
 	x := p1.X.Bytes()
 	x[31] |= (p1.Y.Bytes()[0] & 1) << 7
 
@@ -577,7 +577,7 @@ func (p *PointPallas) ToAffineCompressed() []byte {
 }
 
 func (p *PointPallas) ToAffineUncompressed() []byte {
-	p1 := pasta.PointNew().ToAffine(p.EllipticPoint)
+	p1 := pasta.PointNew().ToAffine(p.EllipticPoint4)
 	x := p1.X.Bytes()
 	y := p1.Y.Bytes()
 	return append(x[:], y[:]...)
@@ -641,13 +641,13 @@ func (*PointPallas) CurveName() string {
 }
 
 func (p *PointPallas) SumOfProducts(points []Point, scalars []Scalar) Point {
-	eps := make([]*native.EllipticPoint, len(points))
+	eps := make([]*native.EllipticPoint4, len(points))
 	for i, pt := range points {
 		ps, ok := pt.(*PointPallas)
 		if !ok {
 			return nil
 		}
-		eps[i] = ps.EllipticPoint
+		eps[i] = ps.EllipticPoint4
 	}
 	scs := make([]*native.Field4, len(scalars))
 	for i, sc := range scalars {
@@ -657,7 +657,7 @@ func (p *PointPallas) SumOfProducts(points []Point, scalars []Scalar) Point {
 		}
 		scs[i] = ss.Value
 	}
-	value, err := p.EllipticPoint.SumOfProducts(eps, scs)
+	value, err := p.EllipticPoint4.SumOfProducts(eps, scs)
 	if err != nil {
 		return nil
 	}
@@ -677,7 +677,7 @@ func (p *PointPallas) UnmarshalBinary(input []byte) error {
 	if !ok {
 		return fmt.Errorf("invalid point")
 	}
-	p.EllipticPoint = ppt.EllipticPoint
+	p.EllipticPoint4 = ppt.EllipticPoint4
 	return nil
 }
 
@@ -694,7 +694,7 @@ func (p *PointPallas) UnmarshalText(input []byte) error {
 	if !ok {
 		return fmt.Errorf("invalid point")
 	}
-	p.EllipticPoint = ppt.EllipticPoint
+	p.EllipticPoint4 = ppt.EllipticPoint4
 	return nil
 }
 
@@ -711,7 +711,7 @@ func (p *PointPallas) UnmarshalJSON(input []byte) error {
 	if !ok {
 		return fmt.Errorf("invalid type")
 	}
-	p.EllipticPoint = P.EllipticPoint
+	p.EllipticPoint4 = P.EllipticPoint4
 	return nil
 }
 

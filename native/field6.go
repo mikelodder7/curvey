@@ -85,7 +85,7 @@ func (f *Field6) Cmp(rhs *Field6) int {
 func cmp6Helper(lhs, rhs *[Field6Limbs]uint64) int {
 	gt := uint64(0)
 	lt := uint64(0)
-	for i := 6; i >= 0; i-- {
+	for i := 5; i >= 0; i-- {
 		// convert to two 64-bit numbers where
 		// the leading bits are zeros and hold no meaning
 		//  so rhs - fp actually means gt
@@ -120,6 +120,15 @@ func equal6Helper(lhs, rhs *[Field6Limbs]uint64) int {
 	t |= lhs[4] ^ rhs[4]
 	t |= lhs[5] ^ rhs[5]
 	return int(((int64(t) | int64(-t)) >> 63) + 1)
+}
+
+// New returns a brand new field
+func (f *Field6) New() *Field6 {
+	return &Field6{
+		Value:      [Field6Limbs]uint64{0, 0, 0, 0, 0, 0},
+		Params:     f.Params,
+		Arithmetic: f.Arithmetic,
+	}
 }
 
 // IsZero returns 1 if f == 0, 0 otherwise.
@@ -312,6 +321,19 @@ func (f *Field6) Double(a *Field6) *Field6 {
 func (f *Field6) Square(a *Field6) *Field6 {
 	f.Arithmetic.Square(&f.Value, &a.Value)
 	return f
+}
+
+func (f *Field6) MulBy3b(arg *Field6) *Field6 {
+	a := new(Field6)
+	t := new(Field6)
+
+	a.Set(arg)
+	t.Set(arg)
+	a.Double(arg)
+	t.Double(a)
+	a.Double(t)
+	a.Add(a, t)
+	return f.Set(a)
 }
 
 // Sqrt this element, if it exists. If true, then value

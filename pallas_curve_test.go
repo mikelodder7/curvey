@@ -54,11 +54,11 @@ func TestPointPallasNeg(t *testing.T) {
 func TestPointPallasRandom(t *testing.T) {
 	curve := PALLAS()
 	a := curve.Point.Random(testRng()).(*PointPallas)
-	require.NotNil(t, a.EllipticPoint.X)
-	require.NotNil(t, a.EllipticPoint.Y)
-	require.NotNil(t, a.EllipticPoint.Z)
+	require.NotNil(t, a.EllipticPoint4.X)
+	require.NotNil(t, a.EllipticPoint4.Y)
+	require.NotNil(t, a.EllipticPoint4.Z)
 	require.True(t, a.IsOnCurve())
-	e := native.EllipticPoint{
+	e := native.EllipticPoint4{
 		X: fp.PastaFpNew().SetRaw(&[native.Field4Limbs]uint64{
 			0x7263083d01d4859c,
 			0x65a03323b5a3d204,
@@ -78,7 +78,7 @@ func TestPointPallasRandom(t *testing.T) {
 			0x0369e90d219ce821,
 		}),
 	}
-	require.Equal(t, 1, a.EllipticPoint.Equal(&e))
+	require.Equal(t, 1, a.EllipticPoint4.Equal(&e))
 }
 
 func TestPointPallasSerialize(t *testing.T) {
@@ -119,8 +119,8 @@ func TestPointPallasCMove(t *testing.T) {
 	a := curve.Point.Random(crand.Reader).(*PointPallas)
 	b := curve.Point.Random(crand.Reader).(*PointPallas)
 	c := curve.NewIdentityPoint().(*PointPallas)
-	require.Equal(t, 1, c.EllipticPoint.CMove(a.EllipticPoint, b.EllipticPoint, 1).Equal(b.EllipticPoint))
-	require.Equal(t, 1, c.EllipticPoint.CMove(a.EllipticPoint, b.EllipticPoint, 0).Equal(a.EllipticPoint))
+	require.Equal(t, 1, c.EllipticPoint4.CMove(a.EllipticPoint4, b.EllipticPoint4, 1).Equal(b.EllipticPoint4))
+	require.Equal(t, 1, c.EllipticPoint4.CMove(a.EllipticPoint4, b.EllipticPoint4, 0).Equal(a.EllipticPoint4))
 }
 
 func TestPointPallasSumOfProducts(t *testing.T) {

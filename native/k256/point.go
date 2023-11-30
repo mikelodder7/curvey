@@ -10,15 +10,15 @@ import (
 
 var (
 	k256PointInitonce        sync.Once
-	k256PointParams          native.EllipticPointParams
+	k256PointParams          native.EllipticPoint4Params
 	k256PointSswuInitOnce    sync.Once
-	k256PointSswuParams      native.SswuParams
+	k256PointSswuParams      native.Sswu4Params
 	k256PointIsogenyInitOnce sync.Once
 	k256PointIsogenyParams   native.IsogenyParams
 )
 
-func PointNew() *native.EllipticPoint {
-	return &native.EllipticPoint{
+func PointNew() *native.EllipticPoint4 {
+	return &native.EllipticPoint4{
 		X:          fp.K256FpNew(),
 		Y:          fp.K256FpNew(),
 		Z:          fp.K256FpNew(),
@@ -28,7 +28,7 @@ func PointNew() *native.EllipticPoint {
 }
 
 func pointParamsInit() {
-	k256PointParams = native.EllipticPointParams{
+	k256PointParams = native.EllipticPoint4Params{
 		A: fp.K256FpNew(),
 		B: fp.K256FpNew().SetUint64(7),
 		Gx: fp.K256FpNew().SetLimbs(&[native.Field4Limbs]uint64{
@@ -48,12 +48,12 @@ func pointParamsInit() {
 	}
 }
 
-func getPointParams() *native.EllipticPointParams {
+func getPointParams() *native.EllipticPoint4Params {
 	k256PointInitonce.Do(pointParamsInit)
 	return &k256PointParams
 }
 
-func getPointSswuParams() *native.SswuParams {
+func getPointSswuParams() *native.Sswu4Params {
 	k256PointSswuInitOnce.Do(pointSswuParamsInit)
 	return &k256PointSswuParams
 }
@@ -119,7 +119,7 @@ func pointSswuParamsInit() {
 	// }
 	// fp.K256FpNew().Arithmetic.ToMontgomery(&newZ, &newZ)
 
-	k256PointSswuParams = native.SswuParams{
+	k256PointSswuParams = native.Sswu4Params{
 		// (q -3) // 4
 		C1: [native.Field4Limbs]uint64{0xffffffffbfffff0b, 0xffffffffffffffff, 0xffffffffffffffff, 0x3fffffffffffffff},
 		// sqrt(-z^3)
@@ -243,7 +243,7 @@ func getPointIsogenyParams() *native.IsogenyParams {
 
 type pointArithmetic struct{}
 
-func (k pointArithmetic) Hash(out *native.EllipticPoint, hash *native.EllipticPointHasher, msg, dst []byte) error {
+func (k pointArithmetic) Hash(out *native.EllipticPoint4, hash *native.EllipticPointHasher, msg, dst []byte) error {
 	var u []byte
 	sswuParams := getPointSswuParams()
 	isoParams := getPointIsogenyParams()
@@ -267,7 +267,7 @@ func (k pointArithmetic) Hash(out *native.EllipticPoint, hash *native.EllipticPo
 	out.X = q0x
 	out.Y = q0y
 	out.Z.SetOne()
-	tv := &native.EllipticPoint{
+	tv := &native.EllipticPoint4{
 		X: q1x,
 		Y: q1y,
 		Z: fp.K256FpNew().SetOne(),
@@ -276,7 +276,7 @@ func (k pointArithmetic) Hash(out *native.EllipticPoint, hash *native.EllipticPo
 	return nil
 }
 
-func (pointArithmetic) Double(out, arg *native.EllipticPoint) {
+func (pointArithmetic) Double(out, arg *native.EllipticPoint4) {
 	// Addition formula from Renes-Costello-Batina 2015
 	// (https://eprint.iacr.org/2015/1060 Algorithm 9)
 	var yy, zz, xy2, bzz, bzz3, bzz9 [native.Field4Limbs]uint64
@@ -320,7 +320,7 @@ func (pointArithmetic) Double(out, arg *native.EllipticPoint) {
 	out.Z.Value = z
 }
 
-func (pointArithmetic) Add(out, arg1, arg2 *native.EllipticPoint) {
+func (pointArithmetic) Add(out, arg1, arg2 *native.EllipticPoint4) {
 	// Addition formula from Renes-Costello-Batina 2015
 	// (https://eprint.iacr.org/2015/1060 Algorithm 7).
 	var xx, yy, zz, nXxYy, nYyZz, nXxZz [native.Field4Limbs]uint64
@@ -407,7 +407,7 @@ func (pointArithmetic) Add(out, arg1, arg2 *native.EllipticPoint) {
 	out.Z.Value = z
 }
 
-func (k pointArithmetic) IsOnCurve(arg *native.EllipticPoint) bool {
+func (k pointArithmetic) IsOnCurve(arg *native.EllipticPoint4) bool {
 	affine := PointNew()
 	k.ToAffine(affine, arg)
 	lhs := fp.K256FpNew().Square(affine.Y)
@@ -416,7 +416,7 @@ func (k pointArithmetic) IsOnCurve(arg *native.EllipticPoint) bool {
 	return lhs.Equal(rhs) == 1
 }
 
-func (pointArithmetic) ToAffine(out, arg *native.EllipticPoint) {
+func (pointArithmetic) ToAffine(out, arg *native.EllipticPoint4) {
 	var wasInverted int
 	var zero, x, y, z [native.Field4Limbs]uint64
 	f := arg.X.Arithmetic

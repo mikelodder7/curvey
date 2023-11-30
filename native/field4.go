@@ -120,6 +120,15 @@ func equal4Helper(lhs, rhs *[Field4Limbs]uint64) int {
 	return int(((int64(t) | int64(-t)) >> 63) + 1)
 }
 
+// New returns a brand new field
+func (f *Field4) New() *Field4 {
+	return &Field4{
+		Value:      [Field4Limbs]uint64{0, 0, 0, 0},
+		Params:     f.Params,
+		Arithmetic: f.Arithmetic,
+	}
+}
+
 // IsZero returns 1 if f == 0, 0 otherwise.
 func (f *Field4) IsZero() int {
 	t := f.Value[0]
