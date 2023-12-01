@@ -135,15 +135,23 @@ func (p *EllipticPoint6) Mul(point *EllipticPoint6, scalar *Field6) *EllipticPoi
 		precomputed[i] = new(EllipticPoint6).Set(point).Double(precomputed[i>>1])
 		precomputed[i+1] = new(EllipticPoint6).Set(point).Add(precomputed[i], point)
 	}
+	pos := p.Params.BitSize - 4
 	p.Identity()
-	for i := 0; i < 256; i += 4 {
-		// Brouwer / windowing method. window size of 4.
-		for j := 0; j < 4; j++ {
+	t := new(EllipticPoint6).Set(point)
+	for ; pos >= 0; pos -= 4 {
+		for i := 0; i < 4; i++ {
 			p.Double(p)
 		}
-		window := bytes[32-1-i>>3] >> (4 - i&0x04) & 0x0F
-		p.Add(p, precomputed[window])
+		slot := (bytes[pos>>3] >> (pos & 7)) & 0xf
+		t.Identity()
+		for i := 1; i < 16; i++ {
+			choice := int(((uint64(slot)^uint64(i))-1)>>8) & 1
+			t.CMove(t, precomputed[i], choice)
+		}
+
+		p.Add(p, t)
 	}
+
 	return p
 }
 
