@@ -37,17 +37,21 @@ var (
 
 	pallasInitonce sync.Once
 	pallas         Curve
+
+	ristretto25519Initonce sync.Once
+	ristretto25519         Curve
 )
 
 const (
-	K256Name       = "secp256k1"
-	BLS12381G1Name = "BLS12381G1"
-	BLS12381G2Name = "BLS12381G2"
-	BLS12831Name   = "BLS12831"
-	P256Name       = "P-256"
-	P384Name       = "P-384"
-	ED25519Name    = "ed25519"
-	PallasName     = "pallas"
+	K256Name           = "secp256k1"
+	BLS12381G1Name     = "BLS12381G1"
+	BLS12381G2Name     = "BLS12381G2"
+	BLS12831Name       = "BLS12831"
+	P256Name           = "P-256"
+	P384Name           = "P-384"
+	ED25519Name        = "ed25519"
+	PallasName         = "pallas"
+	Ristretto25519Name = "ristretto25519"
 )
 
 // Scalar represents an element of the scalar field \mathbb{F}_q
@@ -395,6 +399,8 @@ func (c *Curve) ToEllipticCurve() (elliptic.Curve, error) {
 		return nil, err
 	case PallasName:
 		return nil, err
+	case Ristretto25519Name:
+		return nil, err
 	default:
 		return nil, err
 	}
@@ -485,6 +491,8 @@ func GetCurveByName(name string) *Curve {
 		return ED25519()
 	case PallasName:
 		return PALLAS()
+	case Ristretto25519Name:
+		return Ristretto25519()
 	default:
 		return nil
 	}
@@ -619,6 +627,19 @@ func pallasInit() {
 		Scalar: new(ScalarPallas).Zero(),
 		Point:  new(PointPallas).Identity(),
 		Name:   PallasName,
+	}
+}
+
+func Ristretto25519() *Curve {
+	ristretto25519Initonce.Do(ristrettoInit)
+	return &ristretto25519
+}
+
+func ristrettoInit() {
+	ristretto25519 = Curve{
+		Scalar: new(ScalarRistretto25519).Zero(),
+		Point:  new(PointRistretto25519).Identity(),
+		Name:   Ristretto25519Name,
 	}
 }
 

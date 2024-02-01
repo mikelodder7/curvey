@@ -43,6 +43,14 @@ type PointEd25519 struct {
 	value *edwards25519.Point
 }
 
+type ScalarRistretto25519 struct {
+	value *ristretto.Scalar
+}
+
+type PointRistretto25519 struct {
+	value *ristretto.Point
+}
+
 var scOne, _ = edwards25519.NewScalar().SetCanonicalBytes([]byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 
 func (s *ScalarEd25519) Random(reader io.Reader) Scalar {
@@ -770,4 +778,525 @@ func affineToEdwards(x, y *field.Element) *edwards25519.Point {
 		panic(err)
 	}
 	return p
+}
+
+func (s *ScalarRistretto25519) Random(reader io.Reader) Scalar {
+	if reader == nil {
+		return nil
+	}
+	var seed [64]byte
+	_, _ = reader.Read(seed[:])
+	return s.Hash(seed[:])
+}
+
+func (*ScalarRistretto25519) Hash(b []byte) Scalar {
+	return &ScalarRistretto25519{value: new(ristretto.Scalar).Derive(b)}
+}
+
+func (*ScalarRistretto25519) Zero() Scalar {
+	return &ScalarRistretto25519{value: new(ristretto.Scalar).SetZero()}
+}
+
+func (*ScalarRistretto25519) One() Scalar {
+	return &ScalarRistretto25519{value: new(ristretto.Scalar).SetOne()}
+}
+
+func (s *ScalarRistretto25519) IsZero() bool {
+	i := byte(0)
+	for _, b := range s.value.Bytes() {
+		i |= b
+	}
+	return i == 0
+}
+
+func (s *ScalarRistretto25519) IsOne() bool {
+	data := s.value.Bytes()
+	i := byte(0)
+	for j := 1; j < len(data); j++ {
+		i |= data[j]
+	}
+	return i == 0 && data[0] == 1
+}
+
+func (s *ScalarRistretto25519) IsOdd() bool {
+	return s.value.Bytes()[0]&1 == 1
+}
+
+func (s *ScalarRistretto25519) IsEven() bool {
+	return s.value.Bytes()[0]&1 == 0
+}
+
+func (s *ScalarRistretto25519) New(input int) Scalar {
+	var data [64]byte
+	i := input
+	if input < 0 {
+		i = -input
+	}
+	data[0] = byte(i)
+	data[1] = byte(i >> 8)
+	data[2] = byte(i >> 16)
+	data[3] = byte(i >> 24)
+	value := new(ristretto.Scalar).SetReduced(&data)
+	if input < 0 {
+		value.Neg(value)
+	}
+	return &ScalarRistretto25519{value}
+}
+
+func (s *ScalarRistretto25519) Cmp(rhs Scalar) int {
+	r := s.Sub(rhs)
+	if r != nil && r.IsZero() {
+		return 0
+	} else {
+		return -2
+	}
+}
+
+func (s *ScalarRistretto25519) Square() Scalar {
+	value := new(ristretto.Scalar).Square(s.value)
+	return &ScalarRistretto25519{value}
+}
+
+func (s *ScalarRistretto25519) Pow(exp uint64) Scalar {
+	out := s.Clone()
+
+	for j := 63; j >= 0; j-- {
+		square := out.Square()
+		squareMul := square.Mul(square)
+		out = cSelect(out, square, squareMul, (exp>>j)&1)
+	}
+
+	return out
+}
+
+func (s *ScalarRistretto25519) Double() Scalar {
+	return &ScalarRistretto25519{
+		value: new(ristretto.Scalar).Add(s.value, s.value),
+	}
+}
+
+func (s *ScalarRistretto25519) Invert() (Scalar, error) {
+	return &ScalarRistretto25519{
+		value: new(ristretto.Scalar).Inverse(s.value),
+	}, nil
+}
+
+func (s *ScalarRistretto25519) Sqrt() (Scalar, error) {
+	bi25519, _ := new(big.Int).SetString("1000000000000000000000000000000014DEF9DEA2F79CD65812631A5CF5D3ED", 16)
+	x := s.BigInt()
+	x.ModSqrt(x, bi25519)
+	return s.SetBigInt(x)
+}
+
+func (s *ScalarRistretto25519) Cube() Scalar {
+	value := new(ristretto.Scalar).Square(s.value)
+	value.Mul(value, s.value)
+	return &ScalarRistretto25519{value}
+}
+
+func (s *ScalarRistretto25519) Add(rhs Scalar) Scalar {
+	r, ok := rhs.(*ScalarRistretto25519)
+	if ok {
+		return &ScalarRistretto25519{
+			value: new(ristretto.Scalar).Add(s.value, r.value),
+		}
+	} else {
+		return nil
+	}
+}
+
+func (s *ScalarRistretto25519) Sub(rhs Scalar) Scalar {
+	r, ok := rhs.(*ScalarRistretto25519)
+	if ok {
+		return &ScalarRistretto25519{
+			value: new(ristretto.Scalar).Sub(s.value, r.value),
+		}
+	} else {
+		return nil
+	}
+}
+
+func (s *ScalarRistretto25519) Mul(rhs Scalar) Scalar {
+	r, ok := rhs.(*ScalarRistretto25519)
+	if ok {
+		return &ScalarRistretto25519{
+			value: new(ristretto.Scalar).Mul(s.value, r.value),
+		}
+	} else {
+		return nil
+	}
+}
+
+func (s *ScalarRistretto25519) MulAdd(y, z Scalar) Scalar {
+	yy, ok := y.(*ScalarRistretto25519)
+	if !ok {
+		return nil
+	}
+	zz, ok := z.(*ScalarRistretto25519)
+	if !ok {
+		return nil
+	}
+	return &ScalarRistretto25519{value: new(ristretto.Scalar).MulAdd(s.value, yy.value, zz.value)}
+}
+
+func (s *ScalarRistretto25519) Div(rhs Scalar) Scalar {
+	r, ok := rhs.(*ScalarRistretto25519)
+	if ok {
+		value := new(ristretto.Scalar).Inverse(r.value)
+		value.Mul(value, s.value)
+		return &ScalarRistretto25519{value}
+	} else {
+		return nil
+	}
+}
+
+func (s *ScalarRistretto25519) Neg() Scalar {
+	return &ScalarRistretto25519{
+		value: new(ristretto.Scalar).Neg(s.value),
+	}
+}
+
+func (*ScalarRistretto25519) SetBigInt(x *big.Int) (Scalar, error) {
+	if x == nil {
+		return nil, fmt.Errorf("invalid value")
+	}
+	value := new(ristretto.Scalar).SetBigInt(x)
+	return &ScalarRistretto25519{value}, nil
+}
+
+func (s *ScalarRistretto25519) BigInt() *big.Int {
+	return s.value.BigInt()
+}
+
+func (s *ScalarRistretto25519) Bytes() []byte {
+	return s.value.Bytes()
+}
+
+func (*ScalarRistretto25519) SetBytes(input []byte) (Scalar, error) {
+	if len(input) != 32 {
+		return nil, fmt.Errorf("invalid byte sequence")
+	}
+	var t [32]byte
+	copy(t[:], input)
+	value := new(ristretto.Scalar).SetBytes(&t)
+	return &ScalarRistretto25519{value}, nil
+}
+
+func (*ScalarRistretto25519) SetBytesWide(input []byte) (Scalar, error) {
+	if len(input) != 64 {
+		return nil, fmt.Errorf("invalid bytes sequence")
+	}
+	var t [64]byte
+	copy(t[:], input)
+	value := new(ristretto.Scalar).SetReduced(&t)
+	return &ScalarRistretto25519{value}, nil
+}
+
+func (*ScalarRistretto25519) Point() Point {
+	return new(PointRistretto25519).Identity()
+}
+
+func (s *ScalarRistretto25519) Clone() Scalar {
+	return &ScalarRistretto25519{value: new(ristretto.Scalar).Set(s.value)}
+}
+
+func (s *ScalarRistretto25519) MarshalBinary() ([]byte, error) {
+	return ScalarMarshalBinary(s)
+}
+
+func (s *ScalarRistretto25519) UnmarshalBinary(input []byte) error {
+	sc, err := ScalarUnmarshalBinary(input)
+	if err != nil {
+		return err
+	}
+	ss, ok := sc.(*ScalarRistretto25519)
+	if !ok {
+		return fmt.Errorf("invalid scalar")
+	}
+	s.value = ss.value
+	return nil
+}
+
+func (s *ScalarRistretto25519) MarshalText() ([]byte, error) {
+	return ScalarMarshalText(s)
+}
+
+func (s *ScalarRistretto25519) UnmarshalText(input []byte) error {
+	sc, err := ScalarUnmarshalText(input)
+	if err != nil {
+		return err
+	}
+	ss, ok := sc.(*ScalarRistretto25519)
+	if !ok {
+		return fmt.Errorf("invalid scalar")
+	}
+	s.value = ss.value
+	return nil
+}
+
+func (s *ScalarRistretto25519) MarshalJSON() ([]byte, error) {
+	return ScalarMarshalJSON(s)
+}
+
+func (s *ScalarRistretto25519) UnmarshalJSON(input []byte) error {
+	sc, err := ScalarUnmarshalJSON(input)
+	if err != nil {
+		return err
+	}
+	S, ok := sc.(*ScalarRistretto25519)
+	if !ok {
+		return fmt.Errorf("invalid type")
+	}
+	s.value = S.value
+	return nil
+}
+
+func (p *PointRistretto25519) Random(reader io.Reader) Point {
+	var seed [64]byte
+	_, _ = reader.Read(seed[:])
+	return p.Hash(seed[:])
+}
+
+func (*PointRistretto25519) Hash(b []byte) Point {
+	value := new(ristretto.Point).DeriveDalek(b)
+	return &PointRistretto25519{value}
+}
+
+func (*PointRistretto25519) Identity() Point {
+	return &PointRistretto25519{value: new(ristretto.Point).SetZero()}
+}
+
+func (*PointRistretto25519) Generator() Point {
+	return &PointRistretto25519{value: new(ristretto.Point).SetBase()}
+}
+
+func (p *PointRistretto25519) IsIdentity() bool {
+	return p.Equal(p.Identity())
+}
+
+func (*PointRistretto25519) IsNegative() bool {
+	return false
+}
+
+func (*PointRistretto25519) IsOnCurve() bool {
+	return true
+}
+
+func (p *PointRistretto25519) Double() Point {
+	return &PointRistretto25519{value: new(ristretto.Point).Double(p.value)}
+}
+
+func (*PointRistretto25519) Scalar() Scalar {
+	return new(ScalarRistretto25519).Zero()
+}
+
+func (p *PointRistretto25519) Neg() Point {
+	return &PointRistretto25519{value: new(ristretto.Point).Neg(p.value)}
+}
+
+func (p *PointRistretto25519) Add(rhs Point) Point {
+	if rhs == nil {
+		return nil
+	}
+	r, ok := rhs.(*PointRistretto25519)
+	if ok {
+		return &PointRistretto25519{value: new(ristretto.Point).Add(p.value, r.value)}
+	} else {
+		return nil
+	}
+}
+
+func (p *PointRistretto25519) Sub(rhs Point) Point {
+	if rhs == nil {
+		return nil
+	}
+	r, ok := rhs.(*PointRistretto25519)
+	if ok {
+		return &PointRistretto25519{value: new(ristretto.Point).Sub(p.value, r.value)}
+	} else {
+		return nil
+	}
+}
+
+func (p *PointRistretto25519) Mul(rhs Scalar) Point {
+	if rhs == nil {
+		return nil
+	}
+	r, ok := rhs.(*ScalarRistretto25519)
+	if ok {
+		return &PointRistretto25519{value: new(ristretto.Point).ScalarMult(p.value, r.value)}
+	} else {
+		return nil
+	}
+}
+
+func (p *PointRistretto25519) Equal(rhs Point) bool {
+	r, ok := rhs.(*PointRistretto25519)
+	if ok {
+		return p.value.Equals(r.value)
+	} else {
+		return false
+	}
+}
+
+func (p *PointRistretto25519) Set(x, y *big.Int) (Point, error) {
+	xx := subtle.ConstantTimeCompare(x.Bytes(), []byte{})
+	yy := subtle.ConstantTimeCompare(y.Bytes(), []byte{})
+	if (xx | yy) == 1 {
+		return p.Identity(), nil
+	}
+
+	value := new(ristretto.Point).SetZero()
+	value.X.SetBigInt(x)
+	value.Y.SetBigInt(y)
+	value.Z.SetOne()
+	value.T.Mul(&value.X, &value.Y)
+
+	return &PointRistretto25519{value}, nil
+}
+
+func (p *PointRistretto25519) ToAffineCompressed() []byte {
+	return p.value.Bytes()
+}
+
+func (p *PointRistretto25519) ToAffineUncompressed() []byte {
+	temp := new(ristretto.Point).SetZero()
+
+	recip := temp.Z.Inverse(&p.value.Z)
+	x := temp.X.Mul(&p.value.X, recip)
+	y := temp.Y.Mul(&p.value.Y, recip)
+	xBytes := x.Bytes()
+	yBytes := y.Bytes()
+	var out [64]byte
+	copy(out[:32], xBytes[:])
+	copy(out[32:], yBytes[:])
+	return out[:]
+}
+
+func (*PointRistretto25519) FromAffineCompressed(b []byte) (Point, error) {
+	if len(b) != 32 {
+		return nil, fmt.Errorf("invalid length")
+	}
+	var inBytes [32]byte
+	copy(inBytes[:], b)
+	value := new(ristretto.Point)
+	if value.SetBytes(&inBytes) {
+		return &PointRistretto25519{value}, nil
+	} else {
+		return nil, fmt.Errorf("invalid bytes")
+	}
+}
+
+func (*PointRistretto25519) FromAffineUncompressed(b []byte) (Point, error) {
+	if len(b) != 64 {
+		return nil, fmt.Errorf("invalid byte sequence")
+	}
+	if bytes.Equal(b, []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}) {
+		return &PointRistretto25519{value: new(ristretto.Point).SetZero()}, nil
+	}
+	var input [32]byte
+	value := new(ristretto.Point).SetZero()
+	copy(input[:], b[:32])
+	value.X.SetBytes(&input)
+	copy(input[:], b[32:])
+	value.T.SetBytes(&input)
+	value.Z.SetOne()
+	value.T.Mul(&value.X, &value.Y)
+	return &PointRistretto25519{value}, nil
+}
+
+func (*PointRistretto25519) CurveName() string {
+	return Ristretto25519Name
+}
+
+func (p *PointRistretto25519) SumOfProducts(points []Point, scalars []Scalar) Point {
+	nScalars := make([]*edwards25519.Scalar, len(scalars))
+	nPoints := make([]*edwards25519.Point, len(points))
+	for i, sc := range scalars {
+		s, err := edwards25519.NewScalar().SetCanonicalBytes(sc.Bytes())
+		if err != nil {
+			return nil
+		}
+		nScalars[i] = s
+	}
+	var inBytes [32]byte
+	for i, pt := range points {
+		pp, ok := pt.(*PointRistretto25519)
+		if !ok {
+			return nil
+		}
+		pp.value.X.BytesInto(&inBytes)
+		x, _ := new(field.Element).SetBytes(inBytes[:])
+		pp.value.Y.BytesInto(&inBytes)
+		y, _ := new(field.Element).SetBytes(inBytes[:])
+		pp.value.Z.BytesInto(&inBytes)
+		z, _ := new(field.Element).SetBytes(inBytes[:])
+		pp.value.T.BytesInto(&inBytes)
+		t, _ := new(field.Element).SetBytes(inBytes[:])
+		nPoints[i], _ = edwards25519.NewIdentityPoint().SetExtendedCoordinates(x, y, z, t)
+	}
+	pt := edwards25519.NewIdentityPoint().MultiScalarMult(nScalars, nPoints)
+	value := new(ristretto.Point).SetZero()
+
+	x, y, z, t := pt.ExtendedCoordinates()
+	copy(inBytes[:], x.Bytes())
+	value.X.SetBytes(&inBytes)
+	copy(inBytes[:], y.Bytes())
+	value.Y.SetBytes(&inBytes)
+	copy(inBytes[:], z.Bytes())
+	value.Z.SetBytes(&inBytes)
+	copy(inBytes[:], t.Bytes())
+	value.T.SetBytes(&inBytes)
+	return &PointRistretto25519{value}
+}
+
+func (p *PointRistretto25519) MarshalBinary() ([]byte, error) {
+	return PointMarshalBinary(p)
+}
+
+func (p *PointRistretto25519) UnmarshalBinary(input []byte) error {
+	pt, err := PointUnmarshalBinary(input)
+	if err != nil {
+		return err
+	}
+	ppt, ok := pt.(*PointRistretto25519)
+	if !ok {
+		return fmt.Errorf("invalid point")
+	}
+	p.value = ppt.value
+	return nil
+}
+
+func (p *PointRistretto25519) MarshalText() ([]byte, error) {
+	return PointMarshalText(p)
+}
+
+func (p *PointRistretto25519) UnmarshalText(input []byte) error {
+	pt, err := PointUnmarshalText(input)
+	if err != nil {
+		return err
+	}
+	ppt, ok := pt.(*PointRistretto25519)
+	if !ok {
+		return fmt.Errorf("invalid point")
+	}
+	p.value = ppt.value
+	return nil
+}
+
+func (p *PointRistretto25519) MarshalJSON() ([]byte, error) {
+	return PointMarshalJSON(p)
+}
+
+func (p *PointRistretto25519) UnmarshalJSON(input []byte) error {
+	pt, err := PointUnmarshalJSON(input)
+	if err != nil {
+		return err
+	}
+	P, ok := pt.(*PointRistretto25519)
+	if !ok {
+		return fmt.Errorf("invalid type")
+	}
+	p.value = P.value
+	return nil
 }
