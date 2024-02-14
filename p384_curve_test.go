@@ -311,7 +311,7 @@ func TestPointP384Mul(t *testing.T) {
 	lhs := p384.ScalarBaseMult(u1)
 	p := lhs.(*PointP384)
 	x := p.X().Bytes()
-	require.Equal(t, x[:], internal.ReverseScalarBytes(expectedX))
+	require.Equal(t, x[:], internal.ReverseBytes(expectedX))
 }
 
 func TestPointP384Serialize(t *testing.T) {

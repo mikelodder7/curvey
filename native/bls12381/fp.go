@@ -209,7 +209,7 @@ func (f *fp) Hash(input []byte) *fp {
 	dst := []byte("BLS12381_XMD:SHA-256_SSWU_RO_")
 	xmd := native.ExpandMsgXmd(native.EllipticPointHasherSha256(), input, dst, hashBytes)
 	var t [WideFieldBytes]byte
-	copy(t[:hashBytes], internal.ReverseScalarBytes(xmd))
+	copy(t[:hashBytes], internal.ReverseBytes(xmd))
 	return f.SetBytesWide(&t)
 }
 
@@ -528,7 +528,7 @@ func (f *fp) SetBigInt(bi *big.Int) *fp {
 	t := new(big.Int).Set(bi)
 	t.Mod(t, biModulus)
 	t.FillBytes(buffer[:])
-	copy(buffer[:], internal.ReverseScalarBytes(buffer[:]))
+	copy(buffer[:], internal.ReverseBytes(buffer[:]))
 	_, _ = f.SetBytes(&buffer)
 	return f
 }
@@ -578,7 +578,7 @@ func (f *fp) Bytes() [FieldBytes]byte {
 // BigInt converts this element into the big.Int struct.
 func (f *fp) BigInt() *big.Int {
 	buffer := f.Bytes()
-	return new(big.Int).SetBytes(internal.ReverseScalarBytes(buffer[:]))
+	return new(big.Int).SetBytes(internal.ReverseBytes(buffer[:]))
 }
 
 // Raw converts this element into the a [Field4Limbs]uint64.

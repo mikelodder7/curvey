@@ -36,8 +36,8 @@ func TestP384PointArithmetic_Hash(t *testing.T) {
 
 	x := ss.X.Bytes()
 	y := ss.Y.Bytes()
-	fmt.Printf("x = %s\n", hex.EncodeToString(internal.ReverseScalarBytes(x[:])))
-	fmt.Printf("y = %s\n", hex.EncodeToString(internal.ReverseScalarBytes(y[:])))
+	fmt.Printf("x = %s\n", hex.EncodeToString(internal.ReverseBytes(x[:])))
+	fmt.Printf("y = %s\n", hex.EncodeToString(internal.ReverseBytes(y[:])))
 
 	//sc1 := curvey.P384().NewIdentityPoint().Hash(b[:])
 	//fmt.Printf("%v\n", sc1)

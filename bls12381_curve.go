@@ -52,7 +52,7 @@ func (s *ScalarBls12381) Hash(bytes []byte) Scalar {
 	dst := []byte("BLS12381_XMD:SHA-256_SSWU_RO_")
 	xmd := native.ExpandMsgXmd(native.EllipticPointHasherSha256(), bytes, dst, 48)
 	var t [64]byte
-	copy(t[:48], internal.ReverseScalarBytes(xmd))
+	copy(t[:48], internal.ReverseBytes(xmd))
 
 	return &ScalarBls12381{
 		Value: bls12381.FqNew().SetBytesWide(&t),
@@ -248,7 +248,7 @@ func (s *ScalarBls12381) BigInt() *big.Int {
 
 func (s *ScalarBls12381) Bytes() []byte {
 	t := s.Value.Bytes()
-	return internal.ReverseScalarBytes(t[:])
+	return internal.ReverseBytes(t[:])
 }
 
 func (s *ScalarBls12381) SetBytes(bytes []byte) (Scalar, error) {
@@ -256,7 +256,7 @@ func (s *ScalarBls12381) SetBytes(bytes []byte) (Scalar, error) {
 		return nil, fmt.Errorf("invalid length")
 	}
 	var seq [32]byte
-	copy(seq[:], internal.ReverseScalarBytes(bytes))
+	copy(seq[:], internal.ReverseBytes(bytes))
 	value, err := bls12381.FqNew().SetBytes(&seq)
 	if err != nil {
 		return nil, err

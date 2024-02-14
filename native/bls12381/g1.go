@@ -563,9 +563,9 @@ func (g1 *G1) Hash(hash *native.EllipticPointHasher, msg, dst []byte) *G1 {
 	}
 
 	var buf [WideFieldBytes]byte
-	copy(buf[:64], internal.ReverseScalarBytes(u[:64]))
+	copy(buf[:64], internal.ReverseBytes(u[:64]))
 	u0.SetBytesWide(&buf)
-	copy(buf[:64], internal.ReverseScalarBytes(u[64:]))
+	copy(buf[:64], internal.ReverseBytes(u[64:]))
 	u1.SetBytesWide(&buf)
 
 	r0.osswu3mod4(&u0)
@@ -808,7 +808,7 @@ func (g1 *G1) ToCompressed() [FieldBytes]byte {
 	var t G1
 	t.ToAffine(g1)
 	xBytes := t.x.Bytes()
-	copy(out[:], internal.ReverseScalarBytes(xBytes[:]))
+	copy(out[:], internal.ReverseBytes(xBytes[:]))
 	isInfinity := byte(g1.IsIdentity())
 	// Compressed flag
 	out[0] |= 1 << 7
@@ -836,7 +836,7 @@ func (g1 *G1) FromCompressed(input *[FieldBytes]byte) (*G1, error) {
 		return g1.Identity(), nil
 	}
 
-	copy(x[:], internal.ReverseScalarBytes(input[:]))
+	copy(x[:], internal.ReverseBytes(input[:]))
 	// Mask away the flag bits
 	x[FieldBytes-1] &= 0x1F
 	if _, valid := xFp.SetBytes(&x); valid != 1 {
@@ -868,8 +868,8 @@ func (g1 *G1) ToUncompressed() [WideFieldBytes]byte {
 	t.ToAffine(g1)
 	xBytes := t.x.Bytes()
 	yBytes := t.y.Bytes()
-	copy(out[:FieldBytes], internal.ReverseScalarBytes(xBytes[:]))
-	copy(out[FieldBytes:], internal.ReverseScalarBytes(yBytes[:]))
+	copy(out[:FieldBytes], internal.ReverseBytes(xBytes[:]))
+	copy(out[FieldBytes:], internal.ReverseBytes(yBytes[:]))
 	isInfinity := byte(g1.IsIdentity())
 	out[0] |= (1 << 6) & -isInfinity
 	return out
@@ -886,7 +886,7 @@ func (g1 *G1) FromUncompressed(input *[WideFieldBytes]byte) (*G1, error) {
 		return g1.Identity(), nil
 	}
 
-	copy(t[:], internal.ReverseScalarBytes(input[:FieldBytes]))
+	copy(t[:], internal.ReverseBytes(input[:FieldBytes]))
 	// Mask away top bits
 	t[FieldBytes-1] &= 0x1F
 
@@ -894,7 +894,7 @@ func (g1 *G1) FromUncompressed(input *[WideFieldBytes]byte) (*G1, error) {
 	if valid == 0 {
 		return nil, errors.New("invalid bytes - x not in field")
 	}
-	copy(t[:], internal.ReverseScalarBytes(input[FieldBytes:]))
+	copy(t[:], internal.ReverseBytes(input[FieldBytes:]))
 	_, valid = yFp.SetBytes(&t)
 	if valid == 0 {
 		return nil, errors.New("invalid bytes - y not in field")

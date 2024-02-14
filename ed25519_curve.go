@@ -286,7 +286,7 @@ func (*ScalarEd25519) SetBigInt(x *big.Int) (Scalar, error) {
 
 func (s *ScalarEd25519) BigInt() *big.Int {
 	var ret big.Int
-	buf := internal.ReverseScalarBytes(s.value.Bytes())
+	buf := internal.ReverseBytes(s.value.Bytes())
 	return ret.SetBytes(buf)
 }
 
@@ -421,9 +421,9 @@ func (*PointEd25519) Hash(b []byte) Point {
 	dst := []byte("edwards25519_XMD:SHA-512_ELL2_RO_")
 	u := native.ExpandMsgXmd(native.EllipticPointHasherSha512(), b, dst, 96)
 	var t [64]byte
-	copy(t[:48], internal.ReverseScalarBytes(u[:48]))
+	copy(t[:48], internal.ReverseBytes(u[:48]))
 	u0, _ := new(field.Element).SetWideBytes(t[:])
-	copy(t[:48], internal.ReverseScalarBytes(u[48:96]))
+	copy(t[:48], internal.ReverseBytes(u[48:96]))
 	u1, _ := new(field.Element).SetWideBytes(t[:])
 
 	p0 := mapToEdwards(u0)

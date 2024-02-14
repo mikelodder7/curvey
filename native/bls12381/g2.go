@@ -527,13 +527,13 @@ func (g2 *G2) Hash(hash *native.EllipticPointHasher, msg, dst []byte) *G2 {
 	}
 
 	var buf [96]byte
-	copy(buf[:64], internal.ReverseScalarBytes(u[:64]))
+	copy(buf[:64], internal.ReverseBytes(u[:64]))
 	u0.A.SetBytesWide(&buf)
-	copy(buf[:64], internal.ReverseScalarBytes(u[64:128]))
+	copy(buf[:64], internal.ReverseBytes(u[64:128]))
 	u0.B.SetBytesWide(&buf)
-	copy(buf[:64], internal.ReverseScalarBytes(u[128:192]))
+	copy(buf[:64], internal.ReverseBytes(u[128:192]))
 	u1.A.SetBytesWide(&buf)
-	copy(buf[:64], internal.ReverseScalarBytes(u[192:]))
+	copy(buf[:64], internal.ReverseBytes(u[192:]))
 	u1.B.SetBytesWide(&buf)
 
 	r0.sswu(&u0)
@@ -782,8 +782,8 @@ func (g2 *G2) ToCompressed() [WideFieldBytes]byte {
 	t.ToAffine(g2)
 	xABytes := t.x.A.Bytes()
 	xBBytes := t.x.B.Bytes()
-	copy(out[:FieldBytes], internal.ReverseScalarBytes(xBBytes[:]))
-	copy(out[FieldBytes:], internal.ReverseScalarBytes(xABytes[:]))
+	copy(out[:FieldBytes], internal.ReverseBytes(xBBytes[:]))
+	copy(out[FieldBytes:], internal.ReverseBytes(xABytes[:]))
 	isInfinity := byte(g2.IsIdentity())
 	// Compressed flag
 	out[0] |= 1 << 7
@@ -811,8 +811,8 @@ func (g2 *G2) FromCompressed(input *[WideFieldBytes]byte) (*G2, error) {
 		return g2.Identity(), nil
 	}
 
-	copy(xB[:], internal.ReverseScalarBytes(input[:FieldBytes]))
-	copy(xA[:], internal.ReverseScalarBytes(input[FieldBytes:]))
+	copy(xB[:], internal.ReverseBytes(input[:FieldBytes]))
+	copy(xA[:], internal.ReverseBytes(input[FieldBytes:]))
 	// Mask away the flag bits
 	xB[FieldBytes-1] &= 0x1F
 	_, validA := xFp.A.SetBytes(&xA)
@@ -847,13 +847,13 @@ func (g2 *G2) ToUncompressed() [DoubleWideFieldBytes]byte {
 	var t G2
 	t.ToAffine(g2)
 	bytes := t.x.B.Bytes()
-	copy(out[:FieldBytes], internal.ReverseScalarBytes(bytes[:]))
+	copy(out[:FieldBytes], internal.ReverseBytes(bytes[:]))
 	bytes = t.x.A.Bytes()
-	copy(out[FieldBytes:WideFieldBytes], internal.ReverseScalarBytes(bytes[:]))
+	copy(out[FieldBytes:WideFieldBytes], internal.ReverseBytes(bytes[:]))
 	bytes = t.y.B.Bytes()
-	copy(out[WideFieldBytes:WideFieldBytes+FieldBytes], internal.ReverseScalarBytes(bytes[:]))
+	copy(out[WideFieldBytes:WideFieldBytes+FieldBytes], internal.ReverseBytes(bytes[:]))
 	bytes = t.y.A.Bytes()
-	copy(out[WideFieldBytes+FieldBytes:], internal.ReverseScalarBytes(bytes[:]))
+	copy(out[WideFieldBytes+FieldBytes:], internal.ReverseBytes(bytes[:]))
 	isInfinity := byte(g2.IsIdentity())
 	out[0] |= (1 << 6) & -isInfinity
 	return out
@@ -870,7 +870,7 @@ func (g2 *G2) FromUncompressed(input *[DoubleWideFieldBytes]byte) (*G2, error) {
 		return g2.Identity(), nil
 	}
 
-	copy(t[:], internal.ReverseScalarBytes(input[:FieldBytes]))
+	copy(t[:], internal.ReverseBytes(input[:FieldBytes]))
 	// Mask away top bits
 	t[FieldBytes-1] &= 0x1F
 
@@ -878,7 +878,7 @@ func (g2 *G2) FromUncompressed(input *[DoubleWideFieldBytes]byte) (*G2, error) {
 	if valid == 0 {
 		return nil, errors.New("invalid bytes - x.B not in field")
 	}
-	copy(t[:], internal.ReverseScalarBytes(input[FieldBytes:WideFieldBytes]))
+	copy(t[:], internal.ReverseBytes(input[FieldBytes:WideFieldBytes]))
 	_, valid = a.SetBytes(&t)
 	if valid == 0 {
 		return nil, errors.New("invalid bytes - x.A not in field")
@@ -887,12 +887,12 @@ func (g2 *G2) FromUncompressed(input *[DoubleWideFieldBytes]byte) (*G2, error) {
 	p.x.B.Set(&b)
 	p.x.A.Set(&a)
 
-	copy(t[:], internal.ReverseScalarBytes(input[WideFieldBytes:WideFieldBytes+FieldBytes]))
+	copy(t[:], internal.ReverseBytes(input[WideFieldBytes:WideFieldBytes+FieldBytes]))
 	_, valid = b.SetBytes(&t)
 	if valid == 0 {
 		return nil, errors.New("invalid bytes - y.B not in field")
 	}
-	copy(t[:], internal.ReverseScalarBytes(input[FieldBytes+WideFieldBytes:]))
+	copy(t[:], internal.ReverseBytes(input[FieldBytes+WideFieldBytes:]))
 	_, valid = a.SetBytes(&t)
 	if valid == 0 {
 		return nil, errors.New("invalid bytes - y.A not in field")

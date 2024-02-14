@@ -332,7 +332,7 @@ func TestFpSetBytesWideBigInt(t *testing.T) {
 		e := new(big.Int).SetBytes(tv2[:])
 		e.Mod(e, params.BiModulus)
 
-		tv := internal.ReverseScalarBytes(tv2[:])
+		tv := internal.ReverseBytes(tv2[:])
 		copy(tv2[:], tv)
 		a := P256FpNew().SetBytesWide(&tv2)
 		require.Equal(t, 0, e.Cmp(a.BigInt()))

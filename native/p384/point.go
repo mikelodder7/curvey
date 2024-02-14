@@ -177,9 +177,9 @@ func (p pointArithmetic) Hash(out *native.EllipticPoint6, hash *native.EllipticP
 		u = native.ExpandMsgXof(hash, msg, dst, 144)
 	}
 	var buf [96]byte
-	copy(buf[:72], internal.ReverseScalarBytes(u[:72]))
+	copy(buf[:72], internal.ReverseBytes(u[:72]))
 	u0 := fp.P384FpNew().SetBytesWide(&buf)
-	copy(buf[:72], internal.ReverseScalarBytes(u[72:]))
+	copy(buf[:72], internal.ReverseBytes(u[72:]))
 	u1 := fp.P384FpNew().SetBytesWide(&buf)
 
 	q0x, q0y := sswuParams.Osswu3mod4(u0)

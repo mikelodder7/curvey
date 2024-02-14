@@ -112,9 +112,9 @@ func (k pointArithmetic) Hash(out *native.EllipticPoint4, hash *native.EllipticP
 		u = native.ExpandMsgXof(hash, msg, dst, 96)
 	}
 	var buf [64]byte
-	copy(buf[:48], internal.ReverseScalarBytes(u[:48]))
+	copy(buf[:48], internal.ReverseBytes(u[:48]))
 	u0 := fp.P256FpNew().SetBytesWide(&buf)
-	copy(buf[:48], internal.ReverseScalarBytes(u[48:]))
+	copy(buf[:48], internal.ReverseBytes(u[48:]))
 	u1 := fp.P256FpNew().SetBytesWide(&buf)
 
 	q0x, q0y := sswuParams.Osswu3mod4(u0)

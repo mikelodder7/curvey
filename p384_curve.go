@@ -79,7 +79,7 @@ func (*NistP384) ScalarMul(capBx, capBy *big.Int, k []byte) (*big.Int, *big.Int)
 		return nil, nil
 	}
 	var bytes [48]byte
-	copy(bytes[:], internal.ReverseScalarBytes(k))
+	copy(bytes[:], internal.ReverseBytes(k))
 	s, err := fq.P384FqNew().SetBytes(&bytes)
 	if err != nil {
 		return nil, nil
@@ -89,7 +89,7 @@ func (*NistP384) ScalarMul(capBx, capBy *big.Int, k []byte) (*big.Int, *big.Int)
 
 func (*NistP384) ScalarBaseMult(k []byte) (*big.Int, *big.Int) {
 	var bytes [48]byte
-	copy(bytes[:], internal.ReverseScalarBytes(k))
+	copy(bytes[:], internal.ReverseBytes(k))
 	s, err := fq.P384FqNew().SetBytes(&bytes)
 	if err != nil {
 		return nil, nil
@@ -119,7 +119,7 @@ func (*ScalarP384) Hash(bytes []byte) Scalar {
 	dst := []byte("P384_XMD:SHA-384_SSWU_RO_")
 	xmd := native.ExpandMsgXmd(native.EllipticPointHasherSha384(), bytes, dst, 72)
 	var t [96]byte
-	copy(t[:72], internal.ReverseScalarBytes(xmd))
+	copy(t[:72], internal.ReverseBytes(xmd))
 
 	return &ScalarP384{
 		value: fq.P384FqNew().SetBytesWide(&t),
@@ -296,7 +296,7 @@ func (s *ScalarP384) BigInt() *big.Int {
 
 func (s *ScalarP384) Bytes() []byte {
 	t := s.value.Bytes()
-	return internal.ReverseScalarBytes(t[:])
+	return internal.ReverseBytes(t[:])
 }
 
 func (*ScalarP384) SetBytes(bytes []byte) (Scalar, error) {
@@ -304,7 +304,7 @@ func (*ScalarP384) SetBytes(bytes []byte) (Scalar, error) {
 		return nil, fmt.Errorf("invalid length")
 	}
 	var seq [48]byte
-	copy(seq[:], internal.ReverseScalarBytes(bytes))
+	copy(seq[:], internal.ReverseBytes(bytes))
 	value, err := fq.P384FqNew().SetBytes(&seq)
 	if err != nil {
 		return nil, err
@@ -505,7 +505,7 @@ func (p *PointP384) ToAffineCompressed() []byte {
 	x[0] |= t.Y.Bytes()[0] & 1
 
 	xBytes := t.X.Bytes()
-	copy(x[1:], internal.ReverseScalarBytes(xBytes[:]))
+	copy(x[1:], internal.ReverseBytes(xBytes[:]))
 	return x[:]
 }
 
@@ -514,9 +514,9 @@ func (p *PointP384) ToAffineUncompressed() []byte {
 	out[0] = byte(4)
 	t := p384n.PointNew().ToAffine(p.value)
 	arr := t.X.Bytes()
-	copy(out[1:49], internal.ReverseScalarBytes(arr[:]))
+	copy(out[1:49], internal.ReverseBytes(arr[:]))
 	arr = t.Y.Bytes()
-	copy(out[49:], internal.ReverseScalarBytes(arr[:]))
+	copy(out[49:], internal.ReverseBytes(arr[:]))
 	return out[:]
 }
 
@@ -531,7 +531,7 @@ func (p *PointP384) FromAffineCompressed(bytes []byte) (Point, error) {
 	}
 	sign &= 0x1
 
-	copy(raw[:], internal.ReverseScalarBytes(bytes[1:]))
+	copy(raw[:], internal.ReverseBytes(bytes[1:]))
 	x, err := fp.P384FpNew().SetBytes(&raw)
 	if err != nil {
 		return nil, err
@@ -565,12 +565,12 @@ func (*PointP384) FromAffineUncompressed(bytes []byte) (Point, error) {
 		return nil, fmt.Errorf("invalid sign byte")
 	}
 
-	copy(arr[:], internal.ReverseScalarBytes(bytes[1:49]))
+	copy(arr[:], internal.ReverseBytes(bytes[1:49]))
 	x, err := fp.P384FpNew().SetBytes(&arr)
 	if err != nil {
 		return nil, err
 	}
-	copy(arr[:], internal.ReverseScalarBytes(bytes[49:]))
+	copy(arr[:], internal.ReverseBytes(bytes[49:]))
 	y, err := fp.P384FpNew().SetBytes(&arr)
 	if err != nil {
 		return nil, err

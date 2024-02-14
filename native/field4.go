@@ -248,7 +248,7 @@ func (f *Field4) SetBigInt(bi *big.Int) *Field4 {
 	t := new(big.Int).Set(bi)
 	t.Mod(t, f.Params.BiModulus)
 	t.FillBytes(buffer[:])
-	copy(buffer[:], internal.ReverseScalarBytes(buffer[:]))
+	copy(buffer[:], internal.ReverseBytes(buffer[:]))
 	_, _ = f.SetBytes(&buffer)
 	return f
 }
@@ -283,7 +283,7 @@ func (f *Field4) Bytes() [Field4Bytes]byte {
 // BigInt converts this element into the big.Int struct.
 func (f *Field4) BigInt() *big.Int {
 	buffer := f.Bytes()
-	return new(big.Int).SetBytes(internal.ReverseScalarBytes(buffer[:]))
+	return new(big.Int).SetBytes(internal.ReverseBytes(buffer[:]))
 }
 
 // Raw converts this element into the a [Field4Limbs]uint64.
