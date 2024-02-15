@@ -1,4 +1,4 @@
-package ed448
+package fp
 
 import (
 	"fmt"
@@ -10,6 +10,129 @@ import (
 
 type Fp struct {
 	Value *internal.Field
+}
+
+// ed448FpArithmetic is a struct with all the methods needed for working
+// in mod p
+type ed448FpArithmetic struct{}
+
+func (ed448FpArithmetic) ToMontgomery(out, arg *[]uint64) {
+	o := *out
+	oo := (*MontgomeryDomainFieldElement)(o)
+	a := *arg
+	aa := (*NonMontgomeryDomainFieldElement)(a)
+	ToMontgomery(oo, aa)
+}
+
+func (ed448FpArithmetic) FromMontgomery(out, arg *[]uint64) {
+	o := *out
+	oo := (*NonMontgomeryDomainFieldElement)(o)
+	a := *arg
+	aa := (*MontgomeryDomainFieldElement)(a)
+	FromMontgomery(oo, aa)
+}
+
+func (ed448FpArithmetic) Neg(out, arg *[]uint64) {
+	o := *out
+	oo := (*MontgomeryDomainFieldElement)(o)
+	a := *arg
+	aa := (*MontgomeryDomainFieldElement)(a)
+	Opp(oo, aa)
+}
+
+func (ed448FpArithmetic) Square(out, arg *[]uint64) {
+	o := *out
+	oo := (*MontgomeryDomainFieldElement)(o)
+	a := *arg
+	aa := (*MontgomeryDomainFieldElement)(a)
+	Square(oo, aa)
+}
+
+func (ed448FpArithmetic) Mul(out, arg1, arg2 *[]uint64) {
+	o := *out
+	oo := (*MontgomeryDomainFieldElement)(o)
+	a := *arg1
+	aa := (*MontgomeryDomainFieldElement)(a)
+	b := *arg2
+	bb := (*MontgomeryDomainFieldElement)(b)
+	Mul(oo, aa, bb)
+}
+
+func (ed448FpArithmetic) Add(out, arg1, arg2 *[]uint64) {
+	o := *out
+	oo := (*MontgomeryDomainFieldElement)(o)
+	a := *arg1
+	aa := (*MontgomeryDomainFieldElement)(a)
+	b := *arg2
+	bb := (*MontgomeryDomainFieldElement)(b)
+	Add(oo, aa, bb)
+}
+
+func (ed448FpArithmetic) Sub(out, arg1, arg2 *[]uint64) {
+	o := *out
+	oo := (*MontgomeryDomainFieldElement)(o)
+	a := *arg1
+	aa := (*MontgomeryDomainFieldElement)(a)
+	b := *arg2
+	bb := (*MontgomeryDomainFieldElement)(b)
+	Sub(oo, aa, bb)
+}
+
+func (e *ed448FpArithmetic) Sqrt(wasSquare *int, out, arg *[]uint64) {
+	// Shank's method, as p = 3 (mod 4). This means
+	// exponentiate by (p+1)/4. This only works for elements
+	// that are actually quadratic residue,
+	// so check the result at the end.
+	var c, z [7]uint64
+	cc := c[:]
+	zz := z[:]
+	internal.Pow(&zz, arg, &sqrtExp, &fpParams, e)
+
+	e.Square(&cc, &zz)
+	*wasSquare = internal.EqualI(cc, *arg)
+	e.Selectznz(out, out, &zz, *wasSquare)
+}
+
+func (e *ed448FpArithmetic) Invert(wasInverted *int, out, arg *[]uint64) {
+	// Exponentiate by p - 2
+	exp := []uint64{
+		0xfffffffffffffffd,
+		0xffffffffffffffff,
+		0xffffffffffffffff,
+		0xfffffffeffffffff,
+		0xffffffffffffffff,
+		0xffffffffffffffff,
+		0xffffffffffffffff,
+	}
+	internal.Pow(out, arg, &exp, &fpParams, e)
+	*wasInverted = internal.IsNotZeroArrayI(*arg)
+	e.Selectznz(out, out, arg, *wasInverted)
+}
+
+func (ed448FpArithmetic) FromBytes(out *[]uint64, arg *[]byte) {
+	o := *out
+	oo := (*[7]uint64)(o)
+	b := *arg
+	bb := (*[56]byte)(b)
+	FromBytes(oo, bb)
+}
+
+func (ed448FpArithmetic) ToBytes(out *[]byte, arg *[]uint64) {
+	o := *out
+	oo := (*[56]byte)(o)
+	b := *arg
+	bb := (*[7]uint64)(b)
+	ToBytes(oo, bb)
+}
+
+func (ed448FpArithmetic) Selectznz(out, arg1, arg2 *[]uint64, choice int) {
+	o := *out
+	oo := (*[7]uint64)(o)
+	a := *arg1
+	aa := (*[7]uint64)(a)
+	b := *arg2
+	bb := (*[7]uint64)(b)
+	Selectznz(oo, uint1(choice), aa, bb)
 }
 
 var (
@@ -65,10 +188,20 @@ var (
 			},
 		},
 	}
+
+	sqrtExp = []uint64{
+		0x0000000000000000,
+		0x0000000000000000,
+		0x0000000000000000,
+		0xffffffffc0000000,
+		0xffffffffffffffff,
+		0xffffffffffffffff,
+		0x3fffffffffffffff,
+	}
 )
 
 func FpNew() *Fp {
-	value := new(internal.Field).Init(&fpParams, &fpParams)
+	value := new(internal.Field).Init(&fpParams, &ed448FpArithmetic{})
 	return &Fp{value}
 }
 
@@ -146,16 +279,6 @@ func (f *Fp) Hash(input []byte) *Fp {
 	return f.SetBytesWide(&t)
 }
 
-func (f *Fp) toMontgomery(a *Fp) *Fp {
-	f.Value.Arithmetic.ToMontgomery(&f.Value.Value, &a.Value.Value)
-	return f
-}
-
-func (f *Fp) fromMontgomery(a *Fp) *Fp {
-	f.Value.Arithmetic.FromMontgomery(&f.Value.Value, &a.Value.Value)
-	return f
-}
-
 func (f *Fp) Neg(a *Fp) *Fp {
 	f.Value.Neg(a.Value)
 	return f
@@ -189,36 +312,13 @@ func (f *Fp) Sub(arg1, arg2 *Fp) *Fp {
 
 // Sqrt performs modular square root.
 func (f *Fp) Sqrt(a *Fp) (*Fp, int) {
-	// Shank's method, as p = 3 (mod 4). This means
-	// exponentiate by (p+1)/4. This only works for elements
-	// that are actually quadratic residue,
-	// so check the result at the end.
-	z := new(internal.Field).Init(f.Value.Params, f.Value.Arithmetic)
-	c := new(internal.Field).Init(f.Value.Params, f.Value.Arithmetic)
-	internal.Pow(&z.Value, a.Value.Value, sqrtExp[:], a.Value.Params, a.Value.Arithmetic)
-
-	c.Square(z)
-	wasSquare := c.EqualI(a.Value)
-	f.Value.CMove(f.Value, z, wasSquare)
+	_, wasSquare := f.Value.SqrtI(a.Value)
 	return f, wasSquare
 }
 
 // Invert performs modular inverse.
 func (f *Fp) Invert(a *Fp) (*Fp, int) {
-	// Exponentiate by p - 2
-	exp := new(internal.Field).Init(f.Value.Params, f.Value.Arithmetic)
-	copy(exp.Value, []uint64{
-		0xfffffffffffffffd,
-		0xffffffffffffffff,
-		0xffffffffffffffff,
-		0xfffffffeffffffff,
-		0xffffffffffffffff,
-		0xffffffffffffffff,
-		0xffffffffffffffff,
-	})
-	f.Value.Exp(a.Value, exp)
-	wasInverted := a.IsNonZero()
-	f.Value.CMove(a.Value, f.Value, wasInverted)
+	_, wasInverted := f.Value.InvertI(a.Value)
 	return f, wasInverted
 }
 
@@ -311,9 +411,8 @@ func (f *Fp) CMove(arg1, arg2 *Fp, choice int) *Fp {
 
 // CNeg conditionally negates a if choice == 1.
 func (f *Fp) CNeg(a *Fp, choice int) *Fp {
-	var t Fp
-	t.Neg(a)
-	return f.CMove(f, &t, choice)
+	t := FpNew().Neg(a)
+	return f.CMove(f, t, choice)
 }
 
 // CSwap conditionally swaps this with a if choice == 1

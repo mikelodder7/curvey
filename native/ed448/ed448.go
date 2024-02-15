@@ -1,10 +1,14 @@
 package ed448
 
+import (
+	"github.com/mikelodder7/curvey/native/ed448/fp"
+)
+
 var (
-	zero          = FpNew().SetZero()
-	one           = FpNew().SetOne()
-	minusOne      = FpNew().Neg(one)
-	neg4XTwistedD = FpNew().SetLimbs(&[7]uint64{
+	zero          = fp.FpNew().SetZero()
+	one           = fp.FpNew().SetOne()
+	minusOne      = fp.FpNew().Neg(one)
+	neg4XTwistedD = fp.FpNew().SetLimbs(&[7]uint64{
 		0x00000000000262a8,
 		0x0000000000000000,
 		0x0000000000000000,
@@ -13,7 +17,7 @@ var (
 		0x0000000000000000,
 		0x0000000000000000,
 	})
-	edwardsD = FpNew().SetLimbs(&[7]uint64{
+	edwardsD = fp.FpNew().SetLimbs(&[7]uint64{
 		0xffffffffffff6756,
 		0xffffffffffffffff,
 		0xffffffffffffffff,
@@ -22,8 +26,8 @@ var (
 		0xffffffffffffffff,
 		0xffffffffffffffff,
 	})
-	negEdwardsD = FpNew().Neg(edwardsD)
-	twistedD    = FpNew().SetLimbs(&[7]uint64{
+	negEdwardsD = fp.FpNew().Neg(edwardsD)
+	twistedD    = fp.FpNew().SetLimbs(&[7]uint64{
 		0xffffffffffff6755,
 		0xffffffffffffffff,
 		0xffffffffffffffff,
@@ -32,7 +36,7 @@ var (
 		0xffffffffffffffff,
 		0xffffffffffffffff,
 	})
-	twoXTwistedD = FpNew().SetLimbs(&[7]uint64{
+	twoXTwistedD = fp.FpNew().SetLimbs(&[7]uint64{
 		0xfffffffffffeceab,
 		0xffffffffffffffff,
 		0xffffffffffffffff,
@@ -41,7 +45,7 @@ var (
 		0xffffffffffffffff,
 		0xffffffffffffffff,
 	})
-	decafFactor = FpNew().SetLimbs(&[7]uint64{
+	decafFactor = fp.FpNew().SetLimbs(&[7]uint64{
 		0x9642ef0f45572736,
 		0x60337bf6aa20ce52,
 		0x839a66f4fd6eded2,
@@ -50,7 +54,7 @@ var (
 		0x3bf68d722fa26aa0,
 		0x22d962fbeb24f768,
 	})
-	aP2Div4 = FpNew().SetLimbs(&[7]uint64{
+	aP2Div4 = fp.FpNew().SetLimbs(&[7]uint64{
 		0x00000000000098aa,
 		0x0000000000000000,
 		0x0000000000000000,
@@ -59,9 +63,9 @@ var (
 		0x0000000000000000,
 		0x0000000000000000,
 	})
-	j    = FpNew().SetLimbs(&[7]uint64{156326, 0, 0, 0, 0, 0, 0})
-	negJ = FpNew().Neg(j)
-	z    = FpNew().SetLimbs(&[7]uint64{
+	j    = fp.FpNew().SetLimbs(&[7]uint64{156326, 0, 0, 0, 0, 0, 0})
+	negJ = fp.FpNew().Neg(j)
+	z    = fp.FpNew().SetLimbs(&[7]uint64{
 		0xfffffffffffffffe,
 		0xffffffffffffffff,
 		0xffffffffffffffff,
@@ -71,7 +75,7 @@ var (
 		0xffffffffffffffff,
 	})
 	twistedBasePoint = &TwistedExtendedPoint{
-		X: FpNew().SetLimbs(&[7]uint64{
+		X: fp.FpNew().SetLimbs(&[7]uint64{
 			0x0000000000000000,
 			0x0000000000000000,
 			0x0000000000000000,
@@ -80,7 +84,7 @@ var (
 			0xffffffffffffffff,
 			0x7fffffffffffffff,
 		}),
-		Y: FpNew().SetLimbs(&[7]uint64{
+		Y: fp.FpNew().SetLimbs(&[7]uint64{
 			0xc86079b4dfdd4a64,
 			0x199b0c1e3ab470a1,
 			0x14181844d73f48e5,
@@ -89,8 +93,8 @@ var (
 			0x8d06c13078ca2408,
 			0x8508de14f04286d4,
 		}),
-		Z: FpNew().SetOne(),
-		T: FpNew().SetLimbs(&[7]uint64{
+		Z: fp.FpNew().SetOne(),
+		T: fp.FpNew().SetLimbs(&[7]uint64{
 			0x93e3c816dc198105,
 			0x140362071833f4e0,
 			0x19c9854dde98e342,
@@ -100,22 +104,4 @@ var (
 			0x6d3669e173c6a450,
 		}),
 	}
-	sqrtExp = [7]uint64{
-		0x0000000000000000,
-		0x0000000000000000,
-		0x0000000000000000,
-		0xffffffffc0000000,
-		0xffffffffffffffff,
-		0xffffffffffffffff,
-		0x3fffffffffffffff,
-	}
-	basePointOrder = FqNew().SetLimbs(&[7]uint64{
-		0x2378c292ab5844f3,
-		0x216cc2728dc58f55,
-		0xc44edb49aed63690,
-		0xffffffff7cca23e9,
-		0xffffffffffffffff,
-		0xffffffffffffffff,
-		0x3fffffffffffffff,
-	})
 )

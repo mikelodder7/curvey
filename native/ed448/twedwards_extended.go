@@ -1,15 +1,17 @@
 package ed448
 
+import "github.com/mikelodder7/curvey/native/ed448/fp"
+
 type TwistedExtendedPoint struct {
-	X, Y, Z, T *Fp
+	X, Y, Z, T *fp.Fp
 }
 
 func TwistedExtendedPointNew() *TwistedExtendedPoint {
 	return &TwistedExtendedPoint{
-		X: FpNew(),
-		Y: FpNew(),
-		Z: FpNew(),
-		T: FpNew(),
+		X: fp.FpNew(),
+		Y: fp.FpNew(),
+		Z: fp.FpNew(),
+		T: fp.FpNew(),
 	}
 }
 
@@ -52,10 +54,10 @@ func (t *TwistedExtendedPoint) Add(arg1, arg2 *TwistedExtendedPoint) *TwistedExt
 }
 
 func (t *TwistedExtendedPoint) EqualI(a *TwistedExtendedPoint) int {
-	xz := FpNew().Mul(t.X, a.Z)
-	zx := FpNew().Mul(t.Z, a.X)
-	yz := FpNew().Mul(t.Y, a.Z)
-	zy := FpNew().Mul(t.Z, a.Y)
+	xz := fp.FpNew().Mul(t.X, a.Z)
+	zx := fp.FpNew().Mul(t.Z, a.X)
+	yz := fp.FpNew().Mul(t.Y, a.Z)
+	zy := fp.FpNew().Mul(t.Z, a.Y)
 
 	return xz.EqualI(zx) & yz.EqualI(zy)
 }
@@ -70,36 +72,36 @@ func (t *TwistedExtendedPoint) CMove(a, b *TwistedExtendedPoint, choice int) *Tw
 
 func (t *TwistedExtendedPoint) ToExtensible() *TwistedExtensiblePoint {
 	return &TwistedExtensiblePoint{
-		X:  FpNew().Set(t.X),
-		Y:  FpNew().Set(t.Y),
-		Z:  FpNew().Set(t.Z),
-		T1: FpNew().Set(t.T),
-		T2: FpNew().SetOne(),
+		X:  fp.FpNew().Set(t.X),
+		Y:  fp.FpNew().Set(t.Y),
+		Z:  fp.FpNew().Set(t.Z),
+		T1: fp.FpNew().Set(t.T),
+		T2: fp.FpNew().SetOne(),
 	}
 }
 
 func (t *TwistedExtendedPoint) ToAffine() *TwistedAffinePoint {
-	z, _ := FpNew().Invert(t.Z)
+	z, _ := fp.FpNew().Invert(t.Z)
 	return &TwistedAffinePoint{
-		X: FpNew().Mul(t.X, z),
-		Y: FpNew().Mul(t.Y, z),
+		X: fp.FpNew().Mul(t.X, z),
+		Y: fp.FpNew().Mul(t.Y, z),
 	}
 }
 
-func (t *TwistedExtendedPoint) Isogeny(a *Fp) *EdwardsPoint {
+func (t *TwistedExtendedPoint) Isogeny(a *fp.Fp) *EdwardsPoint {
 	affine := t.ToAffine()
-	xy := FpNew().Mul(affine.X, affine.Y)
-	ax2 := FpNew().Square(affine.X)
+	xy := fp.FpNew().Mul(affine.X, affine.Y)
+	ax2 := fp.FpNew().Square(affine.X)
 	ax2.Mul(ax2, a)
-	y2 := FpNew().Square(affine.Y)
+	y2 := fp.FpNew().Square(affine.Y)
 
-	xNum := FpNew().Double(xy)
-	xDen := FpNew().Set(y2)
+	xNum := fp.FpNew().Double(xy)
+	xDen := fp.FpNew().Set(y2)
 	xDen.Sub(xDen, ax2)
 	_, _ = xDen.Invert(xDen)
-	yNum := FpNew().Set(y2)
+	yNum := fp.FpNew().Set(y2)
 	yNum.Add(yNum, ax2)
-	yDen := FpNew().Double(one)
+	yDen := fp.FpNew().Double(one)
 	yDen.Sub(yDen, y2)
 	yDen.Sub(yDen, ax2)
 	_, _ = yDen.Invert(yDen)
@@ -110,8 +112,8 @@ func (t *TwistedExtendedPoint) Isogeny(a *Fp) *EdwardsPoint {
 	return &EdwardsPoint{
 		X: xNum,
 		Y: yNum,
-		Z: FpNew().SetOne(),
-		T: FpNew().Mul(xNum, yNum),
+		Z: fp.FpNew().SetOne(),
+		T: fp.FpNew().Mul(xNum, yNum),
 	}
 }
 
@@ -120,15 +122,15 @@ func (t *TwistedExtendedPoint) ToUntwisted() *EdwardsPoint {
 }
 
 func (t *TwistedExtendedPoint) IsOnCurveI() int {
-	xy := FpNew().Mul(t.X, t.Y)
-	zt := FpNew().Mul(t.Z, t.T)
-	xx := FpNew().Square(t.X)
-	yy := FpNew().Square(t.Y)
-	zz := FpNew().Square(t.Z)
-	tt := FpNew().Square(t.T)
+	xy := fp.FpNew().Mul(t.X, t.Y)
+	zt := fp.FpNew().Mul(t.Z, t.T)
+	xx := fp.FpNew().Square(t.X)
+	yy := fp.FpNew().Square(t.Y)
+	zz := fp.FpNew().Square(t.Z)
+	tt := fp.FpNew().Square(t.T)
 
-	lhs := FpNew().Sub(yy, xx)
-	rhs := FpNew().Mul(twistedD, tt)
+	lhs := fp.FpNew().Sub(yy, xx)
+	rhs := fp.FpNew().Mul(twistedD, tt)
 	rhs.Add(rhs, zz)
 
 	return xy.EqualI(zt) & lhs.EqualI(rhs)

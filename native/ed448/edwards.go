@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/mikelodder7/curvey/internal"
 	"github.com/mikelodder7/curvey/native"
+	"github.com/mikelodder7/curvey/native/ed448/fp"
+	"github.com/mikelodder7/curvey/native/ed448/fq"
 )
 
 const PointLimbs = 7
@@ -30,19 +32,19 @@ func (c *CompressedEdwardsY) Decompress() (*EdwardsPoint, error) {
 	var yBytes [56]byte
 	copy(yBytes[:], c[:56])
 	sign := int(c[56])
-	y, err := FpNew().SetCanonicalBytes(&yBytes)
+	y, err := fp.FpNew().SetCanonicalBytes(&yBytes)
 	if err != nil {
 		return nil, err
 	}
-	yy := FpNew().Square(y)
-	dyy := FpNew().Mul(edwardsD, yy)
+	yy := fp.FpNew().Square(y)
+	dyy := fp.FpNew().Mul(edwardsD, yy)
 
-	numerator := FpNew().SetOne()
+	numerator := fp.FpNew().SetOne()
 	numerator.Sub(numerator, yy)
 
-	denominator := FpNew().SetOne()
+	denominator := fp.FpNew().SetOne()
 	denominator.Sub(denominator, dyy)
-	x, isRes := FpNew().SqrtRatio(numerator, denominator)
+	x, isRes := fp.FpNew().SqrtRatio(numerator, denominator)
 
 	signBit := sign >> 7
 	isNegative := x.Sgn0I()
@@ -58,15 +60,15 @@ func (c *CompressedEdwardsY) Decompress() (*EdwardsPoint, error) {
 }
 
 type EdwardsPoint struct {
-	X, Y, Z, T *Fp
+	X, Y, Z, T *fp.Fp
 }
 
 func EdwardsPointNew() *EdwardsPoint {
 	return &EdwardsPoint{
-		X: FpNew(),
-		Y: FpNew(),
-		Z: FpNew(),
-		T: FpNew(),
+		X: fp.FpNew(),
+		Y: fp.FpNew(),
+		Z: fp.FpNew(),
+		T: fp.FpNew(),
 	}
 }
 
@@ -115,24 +117,36 @@ func (e *EdwardsPoint) IsIdentityI() int {
 }
 
 func (e *EdwardsPoint) IsOnCurve() int {
-	xy := FpNew().Mul(e.X, e.Y)
-	zt := FpNew().Mul(e.Z, e.T)
+	xy := fp.FpNew().Mul(e.X, e.Y)
+	zt := fp.FpNew().Mul(e.Z, e.T)
 
 	// Y^2 + X^2 == Z^2 - T^2 * D
 
-	yy := FpNew().Square(e.Y)
-	xx := FpNew().Square(e.X)
-	zz := FpNew().Square(e.Z)
-	tt := FpNew().Square(e.T)
-	lhs := FpNew().Add(yy, xx)
-	rhs := FpNew().Add(zz, tt)
-	rhs.Mul(rhs, edwardsD)
+	yy := fp.FpNew().Square(e.Y)
+	xx := fp.FpNew().Square(e.X)
+	zz := fp.FpNew().Square(e.Z)
+	tt := fp.FpNew().Square(e.T)
+	lhs := fp.FpNew().Add(yy, xx)
+	rhs := fp.FpNew().Mul(tt, edwardsD)
+	rhs.Add(rhs, zz)
 
 	return xy.EqualI(zt) & lhs.EqualI(rhs)
 }
 
 func (e *EdwardsPoint) IsTorsionFree() int {
-	return new(EdwardsPoint).Mul(e, basePointOrder).IsIdentityI()
+	ss := fq.FqNew().SetRaw(&[7]uint64{
+		0x8de30a4aad6113cc,
+		0x85b309ca37163d54,
+		0x113b6d26bb58da40,
+		0xfffffffdf3288fa7,
+		0xffffffffffffffff,
+		0xffffffffffffffff,
+		0x3fffffffffffffff,
+	})
+	pt := e.VariableBase(e.ToTwisted(), ss).ToUntwisted()
+	r := EdwardsPointNew().Double(pt)
+	r.Add(r, pt)
+	return r.IsIdentityI()
 }
 
 func (e *EdwardsPoint) Set(rhs *EdwardsPoint) *EdwardsPoint {
@@ -144,39 +158,39 @@ func (e *EdwardsPoint) Set(rhs *EdwardsPoint) *EdwardsPoint {
 }
 
 func (e *EdwardsPoint) EqualI(rhs *EdwardsPoint) int {
-	xz := FpNew().Mul(e.X, rhs.Z)
-	zx := FpNew().Mul(e.Z, rhs.X)
+	xz := fp.FpNew().Mul(e.X, rhs.Z)
+	zx := fp.FpNew().Mul(e.Z, rhs.X)
 
-	yz := FpNew().Mul(e.Y, rhs.Z)
-	zy := FpNew().Mul(e.Z, rhs.Y)
+	yz := fp.FpNew().Mul(e.Y, rhs.Z)
+	zy := fp.FpNew().Mul(e.Z, rhs.Y)
 
 	return xz.EqualI(zx) & yz.EqualI(zy)
 }
 
 func (e *EdwardsPoint) Add(arg1, arg2 *EdwardsPoint) *EdwardsPoint {
-	tmp := FpNew().Mul(arg1.Y, arg2.X)
-	xyXY := FpNew().Mul(arg1.X, arg2.Y)
+	tmp := fp.FpNew().Mul(arg1.Y, arg2.X)
+	xyXY := fp.FpNew().Mul(arg1.X, arg2.Y)
 	// arg1.X * arg2.Y + arg1.Y * arg2.X
 	xyXY.Add(xyXY, tmp)
 
-	aXX := FpNew().Mul(arg1.X, arg2.X) // aX1X2
-	dTT := FpNew().Mul(edwardsD, arg1.T)
-	dTT.Mul(dTT, arg2.T)              // dT1T2
-	zz := FpNew().Mul(arg1.Z, arg2.Z) // Z1Z2
-	yy := FpNew().Mul(arg1.Y, arg2.Y)
+	aXX := fp.FpNew().Mul(arg1.X, arg2.X) // aX1X2
+	dTT := fp.FpNew().Mul(edwardsD, arg1.T)
+	dTT.Mul(dTT, arg2.T)                 // dT1T2
+	zz := fp.FpNew().Mul(arg1.Z, arg2.Z) // Z1Z2
+	yy := fp.FpNew().Mul(arg1.Y, arg2.Y)
 
-	x := FpNew().Sub(zz, dTT)
+	x := fp.FpNew().Sub(zz, dTT)
 	x.Mul(xyXY, x)
 
 	tmp.Sub(yy, aXX)
-	y := FpNew().Add(zz, dTT)
+	y := fp.FpNew().Add(zz, dTT)
 	y.Mul(y, tmp)
 
-	t := FpNew().Sub(yy, aXX)
+	t := fp.FpNew().Sub(yy, aXX)
 	t.Mul(t, xyXY)
 
 	tmp.Add(zz, dTT)
-	z := FpNew().Sub(zz, dTT)
+	z := fp.FpNew().Sub(zz, dTT)
 	z.Mul(z, tmp)
 	return &EdwardsPoint{x, y, z, t}
 }
@@ -187,31 +201,30 @@ func (e *EdwardsPoint) Double(arg *EdwardsPoint) *EdwardsPoint {
 
 func (e *EdwardsPoint) Negate(arg *EdwardsPoint) *EdwardsPoint {
 	return &EdwardsPoint{
-		X: FpNew().Neg(arg.X),
-		Y: FpNew().Set(arg.Y),
-		Z: FpNew().Set(arg.Z),
-		T: FpNew().Neg(arg.T),
+		X: fp.FpNew().Neg(arg.X),
+		Y: fp.FpNew().Set(arg.Y),
+		Z: fp.FpNew().Set(arg.Z),
+		T: fp.FpNew().Neg(arg.T),
 	}
 }
 
-func (e *EdwardsPoint) Mul(arg *EdwardsPoint, s *Fq) *EdwardsPoint {
-	ss := FqNew().Div4(s)
+func (e *EdwardsPoint) Mul(arg *EdwardsPoint, s *fq.Fq) *EdwardsPoint {
+	ss := fq.FqNew().Div4(s)
 	e.VariableBase(arg.ToTwisted(), ss).ToUntwisted()
 	return e.Add(e, arg).scalarMod4(e, s)
 }
 
-func (e *EdwardsPoint) scalarMod4(arg *EdwardsPoint, s *Fq) *EdwardsPoint {
-	ss := FqNew().fromMontgomery(s)
-	sMod4 := ss.Value.Value[0] & 3
+func (e *EdwardsPoint) scalarMod4(arg *EdwardsPoint, s *fq.Fq) *EdwardsPoint {
+	sMod4 := fq.FqNew().Mod4(s)
 
 	zeroP := EdwardsPointNew().SetIdentity()
 	twoP := EdwardsPointNew().Double(arg)
 	threeP := EdwardsPointNew().Add(twoP, arg)
 
-	isZero := internal.IsZeroUint64I(sMod4)
-	isOne := internal.IsZeroUint64I(sMod4 - 1)
-	isTwo := internal.IsZeroUint64I(sMod4 - 2)
-	isThree := internal.IsZeroUint64I(sMod4 - 3)
+	isZero := internal.IsZeroUint64I(sMod4.Value.Value[0])
+	isOne := internal.IsZeroUint64I(sMod4.Value.Value[0] - 1)
+	isTwo := internal.IsZeroUint64I(sMod4.Value.Value[0] - 2)
+	isThree := internal.IsZeroUint64I(sMod4.Value.Value[0] - 3)
 
 	e.CMove(e, zeroP, isZero)
 	e.CMove(e, arg, isOne)
@@ -220,7 +233,7 @@ func (e *EdwardsPoint) scalarMod4(arg *EdwardsPoint, s *Fq) *EdwardsPoint {
 	return e
 }
 
-func (e *EdwardsPoint) VariableBase(arg *TwistedExtendedPoint, s *Fq) *TwistedExtendedPoint {
+func (e *EdwardsPoint) VariableBase(arg *TwistedExtendedPoint, s *fq.Fq) *TwistedExtendedPoint {
 	result := TwistedExtensiblePointNew().SetIdentity()
 
 	// Recode Scalar
@@ -251,54 +264,54 @@ func (e *EdwardsPoint) VariableBase(arg *TwistedExtendedPoint, s *Fq) *TwistedEx
 
 func (e *EdwardsPoint) Torque(arg *EdwardsPoint) *EdwardsPoint {
 	return &EdwardsPoint{
-		X: FpNew().Neg(arg.X),
-		Y: FpNew().Neg(arg.Y),
-		Z: FpNew().Set(arg.Z),
-		T: FpNew().Set(arg.T),
+		X: fp.FpNew().Neg(arg.X),
+		Y: fp.FpNew().Neg(arg.Y),
+		Z: fp.FpNew().Set(arg.Z),
+		T: fp.FpNew().Set(arg.T),
 	}
 }
 
-func (e *EdwardsPoint) Isogeny(a *Fp) *TwistedExtendedPoint {
+func (e *EdwardsPoint) Isogeny(a *fp.Fp) *TwistedExtendedPoint {
 	// Convert to affine now, then derive extended version later
-	affine := new(EdwardsPoint).Set(e).ToAffine()
+	affine := EdwardsPointNew().Set(e).ToAffine()
 
 	// Compute x
-	xy := FpNew().Mul(affine.X, affine.Y)
-	xNum := FpNew().Double(xy)
-	tmp := FpNew().Mul(a, FpNew().Square(affine.X))
-	xDen := FpNew().Square(affine.Y)
+	xy := fp.FpNew().Mul(affine.X, affine.Y)
+	xNum := fp.FpNew().Double(xy)
+	tmp := fp.FpNew().Mul(a, fp.FpNew().Square(affine.X))
+	xDen := fp.FpNew().Square(affine.Y)
 	xDen.Sub(xDen, tmp)
-	newX, _ := FpNew().Invert(xDen)
+	newX, _ := fp.FpNew().Invert(xDen)
 	newX.Mul(newX, xNum)
 
 	// Compute y
 	tmp.Square(affine.X)
 	tmp.Mul(tmp, a)
-	yNum := FpNew().Square(affine.Y)
+	yNum := fp.FpNew().Square(affine.Y)
 	yNum.Add(yNum, tmp)
 
-	yDen := FpNew().Double(one)
+	yDen := fp.FpNew().Double(one)
 	tmp.Square(affine.Y)
 	yDen.Sub(yDen, tmp)
 	tmp.Square(affine.X)
 	tmp.Mul(tmp, a)
 
 	yDen.Sub(yDen, tmp)
-	newY, _ := FpNew().Invert(yDen)
+	newY, _ := fp.FpNew().Invert(yDen)
 	newY.Mul(newY, yNum)
 
 	return &TwistedExtendedPoint{
 		X: newX,
 		Y: newY,
 		Z: one,
-		T: FpNew().Mul(newX, newY),
+		T: fp.FpNew().Mul(newX, newY),
 	}
 }
 
 func (e *EdwardsPoint) ToAffine() *AffinePoint {
-	z, _ := FpNew().Invert(e.Z)
-	x := FpNew().Mul(e.X, z)
-	y := FpNew().Mul(e.Y, z)
+	z, _ := fp.FpNew().Invert(e.Z)
+	x := fp.FpNew().Mul(e.X, z)
+	y := fp.FpNew().Mul(e.Y, z)
 	return &AffinePoint{x, y}
 }
 
@@ -307,13 +320,13 @@ func (e *EdwardsPoint) ToMontgomery() *MontgomeryPoint {
 
 	affine := e.ToAffine()
 
-	yy := FpNew().Square(affine.Y)
-	dyy := FpNew().Mul(edwardsD, yy)
+	yy := fp.FpNew().Square(affine.Y)
+	dyy := fp.FpNew().Mul(edwardsD, yy)
 
-	t1 := FpNew().Sub(one, dyy)
-	t2 := FpNew().Sub(one, yy)
+	t1 := fp.FpNew().Sub(one, dyy)
+	t2 := fp.FpNew().Sub(one, yy)
 	t2.Invert(t2)
-	u := FpNew().Mul(yy, t1)
+	u := fp.FpNew().Mul(yy, t1)
 	u.Mul(u, t2)
 
 	bytes := u.Bytes()
@@ -358,9 +371,9 @@ func (e *EdwardsPoint) Hash(hash *native.EllipticPointHasher, msg, dst []byte) *
 	}
 	var buf [112]byte
 	copy(buf[:84], internal.ReverseBytes(u[:84]))
-	u0 := FpNew().SetBytesWide(&buf)
+	u0 := fp.FpNew().SetBytesWide(&buf)
 	copy(buf[:84], internal.ReverseBytes(u[84:]))
-	u1 := FpNew().SetBytesWide(&buf)
+	u1 := fp.FpNew().SetBytesWide(&buf)
 	q0 := AffinePointNew().mapToCurveElligator2(u0)
 	q1 := AffinePointNew().mapToCurveElligator2(u1)
 	q0.isogeny()
@@ -372,13 +385,13 @@ func (e *EdwardsPoint) Hash(hash *native.EllipticPointHasher, msg, dst []byte) *
 }
 
 type AffinePoint struct {
-	X, Y *Fp
+	X, Y *fp.Fp
 }
 
 func AffinePointNew() *AffinePoint {
 	return &AffinePoint{
-		X: FpNew(),
-		Y: FpNew(),
+		X: fp.FpNew(),
+		Y: fp.FpNew(),
 	}
 }
 
@@ -389,27 +402,27 @@ func (a *AffinePoint) SetIdentity() *AffinePoint {
 }
 
 func (a *AffinePoint) isogeny() *AffinePoint {
-	t0 := FpNew().Square(a.X)  // x^2
-	t1 := FpNew().Add(t0, one) // x^2+1
-	t0.Sub(t0, one)            // x^2-1
-	t2 := FpNew().Square(a.Y)  // y^2
-	t2.Double(t2)              // 2y^2
-	t3 := FpNew().Double(a.X)  // 2x
+	t0 := fp.FpNew().Square(a.X)  // x^2
+	t1 := fp.FpNew().Add(t0, one) // x^2+1
+	t0.Sub(t0, one)               // x^2-1
+	t2 := fp.FpNew().Square(a.Y)  // y^2
+	t2.Double(t2)                 // 2y^2
+	t3 := fp.FpNew().Double(a.X)  // 2x
 
-	t4 := FpNew().Mul(t0, a.Y) // y(x^2-1)
-	t4.Double(t4)              // 2y(x^2-1)
-	xNum := FpNew().Double(t3) // xNum = 4y(x^2-1)
+	t4 := fp.FpNew().Mul(t0, a.Y) // y(x^2-1)
+	t4.Double(t4)                 // 2y(x^2-1)
+	xNum := fp.FpNew().Double(t3) // xNum = 4y(x^2-1)
 
-	t5 := FpNew().Square(t0)    // x^4-2x^2+1
-	t4.Add(t5, t2)              // x^4-2x^2+1+2y^2
-	xDen := FpNew().Add(t4, t2) // xDen = x^4-2x^2+1+4y^2
+	t5 := fp.FpNew().Square(t0)    // x^4-2x^2+1
+	t4.Add(t5, t2)                 // x^4-2x^2+1+2y^2
+	xDen := fp.FpNew().Add(t4, t2) // xDen = x^4-2x^2+1+4y^2
 
-	t5.Mul(t5, a.X)             // x^5-2x^3+x
-	t4.Mul(t2, t3)              // 4xy^2
-	yNum := FpNew().Sub(t4, t5) // yNum = -(x^5-2x^3+x-4xy^2)
+	t5.Mul(t5, a.X)                // x^5-2x^3+x
+	t4.Mul(t2, t3)                 // 4xy^2
+	yNum := fp.FpNew().Sub(t4, t5) // yNum = -(x^5-2x^3+x-4xy^2)
 
-	t4.Mul(t1, t2)              // 2x^2y^2+2y^2
-	yDen := FpNew().Sub(t5, t4) // yDen = x^5-2x^3+x-2x^2y^2-2y^2
+	t4.Mul(t1, t2)                 // 2x^2y^2+2y^2
+	yDen := fp.FpNew().Sub(t5, t4) // yDen = x^5-2x^3+x-2x^2y^2-2y^2
 
 	_, _ = xDen.Invert(xDen)
 	_, _ = yDen.Invert(yDen)
@@ -420,10 +433,10 @@ func (a *AffinePoint) isogeny() *AffinePoint {
 
 func (a *AffinePoint) ToEdwards() *EdwardsPoint {
 	return &EdwardsPoint{
-		X: FpNew().Set(a.X),
-		Y: FpNew().Set(a.Y),
-		Z: FpNew().SetOne(),
-		T: FpNew().Mul(a.X, a.Y),
+		X: fp.FpNew().Set(a.X),
+		Y: fp.FpNew().Set(a.Y),
+		Z: fp.FpNew().SetOne(),
+		T: fp.FpNew().Mul(a.X, a.Y),
 	}
 }
 
@@ -437,24 +450,24 @@ func (a *AffinePoint) EqualI(rhs *AffinePoint) int {
 	return a.X.EqualI(rhs.X) & a.Y.EqualI(rhs.Y)
 }
 
-func (a *AffinePoint) mapToCurveElligator2(u *Fp) *AffinePoint {
-	t1 := FpNew().Square(u)
+func (a *AffinePoint) mapToCurveElligator2(u *fp.Fp) *AffinePoint {
+	t1 := fp.FpNew().Square(u)
 	t1.Mul(t1, z)
 	e1 := t1.EqualI(minusOne)
 	t1.CMove(t1, zero, e1)
-	x1 := FpNew().Add(t1, one)
+	x1 := fp.FpNew().Add(t1, one)
 	_, _ = x1.Invert(x1)
 	x1.Mul(x1, negJ)
-	gx1 := FpNew().Add(x1, j)
+	gx1 := fp.FpNew().Add(x1, j)
 	gx1.Mul(gx1, x1)
 	gx1.Add(gx1, one)
 	gx1.Mul(gx1, x1)
-	x2 := FpNew().Neg(x1)
+	x2 := fp.FpNew().Neg(x1)
 	x2.Sub(x2, j)
-	gx2 := FpNew().Mul(t1, gx1)
+	gx2 := fp.FpNew().Mul(t1, gx1)
 	e2 := gx1.IsSquare()
 	a.X.CMove(x2, x1, e2)
-	y2 := FpNew().CMove(gx2, gx1, e2)
+	y2 := fp.FpNew().CMove(gx2, gx1, e2)
 	a.Y.Sqrt(y2)
 	e3 := a.Y.Sgn0I()
 	a.Y.CNeg(a.Y, e2^e3)
@@ -500,9 +513,9 @@ func (m *MontgomeryPoint) IsLowOrder() int {
 		subtle.ConstantTimeCompare(m[:], MontgomeryPointLowC[:])
 }
 
-func (m *MontgomeryPoint) Mul(scalar *Fq) *MontgomeryPoint {
+func (m *MontgomeryPoint) Mul(scalar *fq.Fq) *MontgomeryPoint {
 	// Algorithm 8 of Costello-Smith 2017
-	affineU, err := FpNew().SetCanonicalBytes((*[56]byte)(m))
+	affineU, err := fp.FpNew().SetCanonicalBytes((*[56]byte)(m))
 	if err != nil {
 		return nil
 	}
@@ -510,7 +523,7 @@ func (m *MontgomeryPoint) Mul(scalar *Fq) *MontgomeryPoint {
 	x0 := NewProjectiveMontgomeryPoint().SetIdentity()
 	x1 := &ProjectiveMontgomeryPoint{
 		U: affineU,
-		W: FpNew().SetOne(),
+		W: fp.FpNew().SetOne(),
 	}
 
 	bits := internal.ReverseBytes(scalar.Value.Bytes())
@@ -535,18 +548,18 @@ func (m *MontgomeryPoint) Bytes() []byte {
 }
 
 func (m *MontgomeryPoint) ToProjective() *ProjectiveMontgomeryPoint {
-	u, _ := FpNew().SetCanonicalBytes((*[56]byte)(m))
-	return &ProjectiveMontgomeryPoint{U: u, W: FpNew().SetOne()}
+	u, _ := fp.FpNew().SetCanonicalBytes((*[56]byte)(m))
+	return &ProjectiveMontgomeryPoint{U: u, W: fp.FpNew().SetOne()}
 }
 
 type ProjectiveMontgomeryPoint struct {
-	U, W *Fp
+	U, W *fp.Fp
 }
 
 func NewProjectiveMontgomeryPoint() *ProjectiveMontgomeryPoint {
 	return &ProjectiveMontgomeryPoint{
-		U: FpNew(),
-		W: FpNew(),
+		U: fp.FpNew(),
+		W: fp.FpNew(),
 	}
 }
 
@@ -557,7 +570,7 @@ func (p *ProjectiveMontgomeryPoint) SetIdentity() *ProjectiveMontgomeryPoint {
 }
 
 func (p *ProjectiveMontgomeryPoint) ToAffine() *MontgomeryPoint {
-	x, _ := FpNew().Invert(p.W)
+	x, _ := fp.FpNew().Invert(p.W)
 	x.Mul(x, p.U)
 	b := x.Bytes()
 	return (*MontgomeryPoint)(&b)
@@ -576,33 +589,33 @@ func (*ProjectiveMontgomeryPoint) CSwap(a, b *ProjectiveMontgomeryPoint, choice 
 
 func (*ProjectiveMontgomeryPoint) DifferentialAddAndDouble(
 	p, q *ProjectiveMontgomeryPoint,
-	affinePmQ *Fp,
+	affinePmQ *fp.Fp,
 ) {
-	t0 := FpNew().Add(p.U, p.W)
-	t1 := FpNew().Sub(p.U, p.W)
-	t2 := FpNew().Add(q.U, q.W)
-	t3 := FpNew().Sub(q.U, q.W)
+	t0 := fp.FpNew().Add(p.U, p.W)
+	t1 := fp.FpNew().Sub(p.U, p.W)
+	t2 := fp.FpNew().Add(q.U, q.W)
+	t3 := fp.FpNew().Sub(q.U, q.W)
 
-	t4 := FpNew().Square(t0) // (U_P + W_P)^2 = U_P^2 + 2 U_P W_P + W_P^2
-	t5 := FpNew().Square(t1) // (U_P - W_P)^2 = U_P^2 - 2 U_P W_P + W_P^2
+	t4 := fp.FpNew().Square(t0) // (U_P + W_P)^2 = U_P^2 + 2 U_P W_P + W_P^2
+	t5 := fp.FpNew().Square(t1) // (U_P - W_P)^2 = U_P^2 - 2 U_P W_P + W_P^2
 
-	t6 := FpNew().Sub(t4, t5) // 4 U_P W_P
+	t6 := fp.FpNew().Sub(t4, t5) // 4 U_P W_P
 
-	t7 := FpNew().Mul(t0, t3) // (U_P + W_P) (U_Q - W_Q) = U_P U_Q + W_P U_Q - U_P W_Q - W_P W_Q
-	t8 := FpNew().Mul(t1, t2) // (U_P - W_P) (U_Q + W_Q) = U_P U_Q - W_P U_Q + U_P W_Q - W_P W_Q
+	t7 := fp.FpNew().Mul(t0, t3) // (U_P + W_P) (U_Q - W_Q) = U_P U_Q + W_P U_Q - U_P W_Q - W_P W_Q
+	t8 := fp.FpNew().Mul(t1, t2) // (U_P - W_P) (U_Q + W_Q) = U_P U_Q - W_P U_Q + U_P W_Q - W_P W_Q
 
-	t9 := FpNew().Add(t7, t8)  // 2 (U_P U_Q - W_P W_Q)
-	t10 := FpNew().Sub(t7, t8) // 2 (W_P U_Q - U_P W_Q)
+	t9 := fp.FpNew().Add(t7, t8)  // 2 (U_P U_Q - W_P W_Q)
+	t10 := fp.FpNew().Sub(t7, t8) // 2 (W_P U_Q - U_P W_Q)
 
-	t11 := FpNew().Square(t9)       // 4 (U_P U_Q - W_P W_Q)^2
-	t12 := FpNew().Square(t10)      // 4 (W_P U_Q - U_P W_Q)^2
-	t13 := FpNew().Mul(aP2Div4, t6) // (A + 2) U_P U_Q
+	t11 := fp.FpNew().Square(t9)       // 4 (U_P U_Q - W_P W_Q)^2
+	t12 := fp.FpNew().Square(t10)      // 4 (W_P U_Q - U_P W_Q)^2
+	t13 := fp.FpNew().Mul(aP2Div4, t6) // (A + 2) U_P U_Q
 
-	t14 := FpNew().Mul(t4, t5)  // ((U_P + W_P)(U_P - W_P))^2 = (U_P^2 - W_P^2)^2
-	t15 := FpNew().Add(t13, t5) // (U_P - W_P)^2 + (A + 2) U_P W_P
+	t14 := fp.FpNew().Mul(t4, t5)  // ((U_P + W_P)(U_P - W_P))^2 = (U_P^2 - W_P^2)^2
+	t15 := fp.FpNew().Add(t13, t5) // (U_P - W_P)^2 + (A + 2) U_P W_P
 
-	t16 := FpNew().Mul(t6, t15)        // 4 (U_P W_P) ((U_P - W_P)^2 + (A + 2) U_P W_P)
-	t17 := FpNew().Mul(affinePmQ, t12) // U_D * 4 (W_P U_Q - U_P W_Q)^2
+	t16 := fp.FpNew().Mul(t6, t15)        // 4 (U_P W_P) ((U_P - W_P)^2 + (A + 2) U_P W_P)
+	t17 := fp.FpNew().Mul(affinePmQ, t12) // U_D * 4 (W_P U_Q - U_P W_Q)^2
 	//t18 := t11; // W_D * 4 (U_P U_Q - W_P W_Q)^2
 
 	p.U = t14 // U_{P'} = (U_P + W_P)^2 (U_P - W_P)^2

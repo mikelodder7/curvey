@@ -1,15 +1,17 @@
 package ed448
 
+import "github.com/mikelodder7/curvey/native/ed448/fp"
+
 type TwistedProjectiveNielsPoint struct {
-	YplusX, YminusX, Td, Z *Fp
+	YplusX, YminusX, Td, Z *fp.Fp
 }
 
 func TwistedProjectiveNielsPointNew() *TwistedProjectiveNielsPoint {
 	return &TwistedProjectiveNielsPoint{
-		YplusX:  FpNew(),
-		YminusX: FpNew(),
-		Td:      FpNew(),
-		Z:       FpNew(),
+		YplusX:  fp.FpNew(),
+		YminusX: fp.FpNew(),
+		Td:      fp.FpNew(),
+		Z:       fp.FpNew(),
 	}
 }
 
@@ -18,13 +20,13 @@ func (t *TwistedProjectiveNielsPoint) SetIdentity() *TwistedProjectiveNielsPoint
 }
 
 func (t *TwistedProjectiveNielsPoint) ToExtended() *TwistedExtendedPoint {
-	a := FpNew().Sub(t.YplusX, t.YminusX)
-	b := FpNew().Add(t.YplusX, t.YminusX)
+	a := fp.FpNew().Sub(t.YplusX, t.YminusX)
+	b := fp.FpNew().Add(t.YplusX, t.YminusX)
 	return &TwistedExtendedPoint{
-		X: FpNew().Mul(t.Z, a),
-		Y: FpNew().Mul(t.Z, b),
-		Z: FpNew().Square(t.Z),
-		T: FpNew().Mul(a, b),
+		X: fp.FpNew().Mul(t.Z, a),
+		Y: fp.FpNew().Mul(t.Z, b),
+		Z: fp.FpNew().Square(t.Z),
+		T: fp.FpNew().Mul(a, b),
 	}
 }
 

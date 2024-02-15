@@ -1,13 +1,15 @@
 package ed448
 
+import "github.com/mikelodder7/curvey/native/ed448/fp"
+
 type TwistedAffinePoint struct {
-	X, Y *Fp
+	X, Y *fp.Fp
 }
 
 func TwistedAffinePointNew() *TwistedAffinePoint {
 	return &TwistedAffinePoint{
-		X: FpNew(),
-		Y: FpNew(),
+		X: fp.FpNew(),
+		Y: fp.FpNew(),
 	}
 }
 
@@ -18,12 +20,12 @@ func (t *TwistedAffinePoint) SetIdentity() *TwistedAffinePoint {
 }
 
 func (t *TwistedAffinePoint) IsOnCurve() bool {
-	x := FpNew().Square(t.X)
-	y := FpNew().Square(t.Y)
+	x := fp.FpNew().Square(t.X)
+	y := fp.FpNew().Square(t.Y)
 
-	lhs := FpNew().Sub(y, x)
-	rhs := FpNew().SetOne()
-	rhs2 := FpNew().Mul(x, y)
+	lhs := fp.FpNew().Sub(y, x)
+	rhs := fp.FpNew().SetOne()
+	rhs2 := fp.FpNew().Mul(x, y)
 	rhs2.Mul(rhs2, twistedD)
 	rhs.Add(rhs, rhs2)
 	return lhs.EqualI(rhs) == 1
@@ -36,18 +38,18 @@ func (t *TwistedAffinePoint) Neg(a *TwistedAffinePoint) *TwistedAffinePoint {
 }
 
 func (t *TwistedAffinePoint) Add(arg1, arg2 *TwistedAffinePoint) *TwistedAffinePoint {
-	xx := FpNew().Mul(arg1.X, arg2.X)
-	yy := FpNew().Mul(arg1.Y, arg2.Y)
-	xy := FpNew().Mul(arg1.X, arg2.Y)
-	yx := FpNew().Mul(arg1.Y, arg2.X)
-	d := FpNew().Mul(xx, yy)
+	xx := fp.FpNew().Mul(arg1.X, arg2.X)
+	yy := fp.FpNew().Mul(arg1.Y, arg2.Y)
+	xy := fp.FpNew().Mul(arg1.X, arg2.Y)
+	yx := fp.FpNew().Mul(arg1.Y, arg2.X)
+	d := fp.FpNew().Mul(xx, yy)
 	d.Mul(d, twistedD)
 
-	yNum := FpNew().Add(xx, yy)
-	yDen := FpNew().Sub(one, d)
+	yNum := fp.FpNew().Add(xx, yy)
+	yDen := fp.FpNew().Sub(one, d)
 
-	xNum := FpNew().Add(xy, yx)
-	xDen := FpNew().Add(one, d)
+	xNum := fp.FpNew().Add(xy, yx)
+	xDen := fp.FpNew().Add(one, d)
 
 	t.X, _ = yDen.Invert(yDen)
 	t.Y, _ = xDen.Invert(xDen)
@@ -58,11 +60,11 @@ func (t *TwistedAffinePoint) Add(arg1, arg2 *TwistedAffinePoint) *TwistedAffineP
 
 func (t *TwistedAffinePoint) ToExtensible() *TwistedExtensiblePoint {
 	return &TwistedExtensiblePoint{
-		X:  FpNew().Set(t.X),
-		Y:  FpNew().Set(t.Y),
-		Z:  FpNew().SetOne(),
-		T1: FpNew().Set(t.X),
-		T2: FpNew().Set(t.Y),
+		X:  fp.FpNew().Set(t.X),
+		Y:  fp.FpNew().Set(t.Y),
+		Z:  fp.FpNew().SetOne(),
+		T1: fp.FpNew().Set(t.X),
+		T2: fp.FpNew().Set(t.Y),
 	}
 }
 
@@ -71,14 +73,14 @@ func (t *TwistedAffinePoint) ToExtended() *TwistedExtendedPoint {
 }
 
 type TwistedAffineNielsPoint struct {
-	YplusX, YminusX, Td *Fp
+	YplusX, YminusX, Td *fp.Fp
 }
 
 func AffineNielsPointNew() *TwistedAffineNielsPoint {
 	return &TwistedAffineNielsPoint{
-		YplusX:  FpNew(),
-		YminusX: FpNew(),
-		Td:      FpNew(),
+		YplusX:  fp.FpNew(),
+		YminusX: fp.FpNew(),
+		Td:      fp.FpNew(),
 	}
 }
 
@@ -102,9 +104,9 @@ func (t *TwistedAffineNielsPoint) EqualI(arg *TwistedAffineNielsPoint) int {
 
 func (t *TwistedAffineNielsPoint) ToExtended() *TwistedExtendedPoint {
 	return &TwistedExtendedPoint{
-		X: FpNew().Sub(t.YplusX, t.YminusX),
-		Y: FpNew().Add(t.YminusX, t.YplusX),
-		Z: FpNew().SetOne(),
-		T: FpNew().Mul(t.YplusX, t.YminusX),
+		X: fp.FpNew().Sub(t.YplusX, t.YminusX),
+		Y: fp.FpNew().Add(t.YminusX, t.YplusX),
+		Z: fp.FpNew().SetOne(),
+		T: fp.FpNew().Mul(t.YplusX, t.YminusX),
 	}
 }

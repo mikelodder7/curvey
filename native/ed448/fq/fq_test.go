@@ -1,4 +1,4 @@
-package ed448
+package fq
 
 import (
 	"fmt"

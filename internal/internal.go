@@ -14,6 +14,20 @@ func IsZeroI(a int) int {
 	return ((a | -a) >> 31) + 1
 }
 
+func IsNonZeroI(a int) int {
+	return -((a | -a) >> 31)
+}
+
+func CtSelect(a, b int, choice int) int {
+	mask := -choice
+	return a ^ ((a ^ b) & mask)
+}
+
+func CtSelectUint64(a, b uint64, choice int) uint64 {
+	mask := uint64(-int64(choice))
+	return a ^ ((a ^ b) & mask)
+}
+
 func IsZeroUint64I(a uint64) int {
 	return int(((int64(a) | int64(-a)) >> 63) + 1)
 }

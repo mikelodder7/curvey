@@ -123,7 +123,7 @@ func (f *FieldParams) ToMontgomery(out, arg *[]uint64) {
 func (f *FieldParams) FromMontgomery(out, arg *[]uint64) {
 	tmp := make([]uint64, f.Limbs*2)
 	copy(tmp[:f.Limbs], *arg)
-	copy(*out, f.montReduce(tmp))
+	copy(*out, f.MontReduce(tmp))
 }
 
 func (f *FieldParams) Add(out, arg1, arg2 *[]uint64) {
@@ -131,7 +131,7 @@ func (f *FieldParams) Add(out, arg1, arg2 *[]uint64) {
 	var carry uint64
 
 	for i := 0; i < f.Limbs; i++ {
-		t[i], carry = adc((*arg1)[i], (*arg2)[i], carry)
+		t[i], carry = Adc((*arg1)[i], (*arg2)[i], carry)
 	}
 
 	// Subtract the modulus to ensure the value
@@ -144,7 +144,7 @@ func (f *FieldParams) Sub(out, arg1, arg2 *[]uint64) {
 	var borrow, carry uint64
 
 	for i := 0; i < f.Limbs; i++ {
-		d[i], borrow = sbb((*arg1)[i], (*arg2)[i], borrow)
+		d[i], borrow = Sbb((*arg1)[i], (*arg2)[i], borrow)
 	}
 
 	// If underflow occurred on the final limb, borrow 0xff...ff, otherwise
@@ -152,7 +152,7 @@ func (f *FieldParams) Sub(out, arg1, arg2 *[]uint64) {
 	borrow = -borrow
 
 	for i := 0; i < f.Limbs; i++ {
-		d[i], carry = adc(d[i], f.Modulus[i]&borrow, carry)
+		d[i], carry = Adc(d[i], f.Modulus[i]&borrow, carry)
 	}
 
 	copy(*out, d)
@@ -162,15 +162,71 @@ func (f *FieldParams) Mul(out, arg1, arg2 *[]uint64) {
 	var carry uint64
 	rr := make([]uint64, f.Limbs*2)
 
-	for i := 0; i < f.Limbs; i++ {
-		for j := 0; j < f.Limbs; j++ {
-			rr[i+j], carry = mac(rr[i+j], (*arg1)[i], (*arg2)[j], carry)
-		}
-		rr[i+f.Limbs] = carry
-		carry = 0
-	}
+	//for i := 0; i < f.Limbs; i++ {
+	//	for j := 0; j < f.Limbs; j++ {
+	//		rr[i+j], carry = Mac(rr[i+j], (*arg1)[i], (*arg2)[j], carry)
+	//	}
+	//	rr[i+f.Limbs] = carry
+	//	carry = 0
+	//}
 
-	copy(*out, f.montReduce(rr))
+	rr[0], carry = Mac(0, (*arg1)[0], (*arg2)[0], 0)
+	rr[1], carry = Mac(0, (*arg1)[0], (*arg2)[1], carry)
+	rr[2], carry = Mac(0, (*arg1)[0], (*arg2)[2], carry)
+	rr[3], carry = Mac(0, (*arg1)[0], (*arg2)[3], carry)
+	rr[4], carry = Mac(0, (*arg1)[0], (*arg2)[4], carry)
+	rr[5], carry = Mac(0, (*arg1)[0], (*arg2)[5], carry)
+	rr[6], rr[7] = Mac(0, (*arg1)[0], (*arg2)[6], carry)
+
+	rr[1], carry = Mac(rr[1], (*arg1)[1], (*arg2)[0], 0)
+	rr[2], carry = Mac(rr[2], (*arg1)[1], (*arg2)[1], carry)
+	rr[3], carry = Mac(rr[3], (*arg1)[1], (*arg2)[2], carry)
+	rr[4], carry = Mac(rr[4], (*arg1)[1], (*arg2)[3], carry)
+	rr[5], carry = Mac(rr[5], (*arg1)[1], (*arg2)[4], carry)
+	rr[6], carry = Mac(rr[6], (*arg1)[1], (*arg2)[5], carry)
+	rr[7], rr[8] = Mac(rr[7], (*arg1)[1], (*arg2)[6], carry)
+
+	rr[2], carry = Mac(rr[2], (*arg1)[2], (*arg2)[0], 0)
+	rr[3], carry = Mac(rr[3], (*arg1)[2], (*arg2)[1], carry)
+	rr[4], carry = Mac(rr[4], (*arg1)[2], (*arg2)[2], carry)
+	rr[5], carry = Mac(rr[5], (*arg1)[2], (*arg2)[3], carry)
+	rr[6], carry = Mac(rr[6], (*arg1)[2], (*arg2)[4], carry)
+	rr[7], carry = Mac(rr[7], (*arg1)[2], (*arg2)[5], carry)
+	rr[8], rr[9] = Mac(rr[8], (*arg1)[2], (*arg2)[6], carry)
+
+	rr[3], carry = Mac(rr[3], (*arg1)[3], (*arg2)[0], 0)
+	rr[4], carry = Mac(rr[4], (*arg1)[3], (*arg2)[1], carry)
+	rr[5], carry = Mac(rr[5], (*arg1)[3], (*arg2)[2], carry)
+	rr[6], carry = Mac(rr[6], (*arg1)[3], (*arg2)[3], carry)
+	rr[7], carry = Mac(rr[7], (*arg1)[3], (*arg2)[4], carry)
+	rr[8], carry = Mac(rr[8], (*arg1)[3], (*arg2)[5], carry)
+	rr[9], rr[10] = Mac(rr[9], (*arg1)[3], (*arg2)[6], carry)
+
+	rr[4], carry = Mac(rr[4], (*arg1)[4], (*arg2)[0], 0)
+	rr[5], carry = Mac(rr[5], (*arg1)[4], (*arg2)[1], carry)
+	rr[6], carry = Mac(rr[6], (*arg1)[4], (*arg2)[2], carry)
+	rr[7], carry = Mac(rr[7], (*arg1)[4], (*arg2)[3], carry)
+	rr[8], carry = Mac(rr[8], (*arg1)[4], (*arg2)[4], carry)
+	rr[9], carry = Mac(rr[9], (*arg1)[4], (*arg2)[5], carry)
+	rr[10], rr[11] = Mac(rr[10], (*arg1)[4], (*arg2)[6], carry)
+
+	rr[5], carry = Mac(rr[5], (*arg1)[5], (*arg2)[0], 0)
+	rr[6], carry = Mac(rr[6], (*arg1)[5], (*arg2)[1], carry)
+	rr[7], carry = Mac(rr[7], (*arg1)[5], (*arg2)[2], carry)
+	rr[8], carry = Mac(rr[8], (*arg1)[5], (*arg2)[3], carry)
+	rr[9], carry = Mac(rr[9], (*arg1)[5], (*arg2)[4], carry)
+	rr[10], carry = Mac(rr[10], (*arg1)[5], (*arg2)[5], carry)
+	rr[11], rr[12] = Mac(rr[11], (*arg1)[5], (*arg2)[6], carry)
+
+	rr[6], carry = Mac(rr[6], (*arg1)[6], (*arg2)[0], 0)
+	rr[7], carry = Mac(rr[7], (*arg1)[6], (*arg2)[1], carry)
+	rr[8], carry = Mac(rr[8], (*arg1)[6], (*arg2)[2], carry)
+	rr[9], carry = Mac(rr[9], (*arg1)[6], (*arg2)[3], carry)
+	rr[10], carry = Mac(rr[10], (*arg1)[6], (*arg2)[4], carry)
+	rr[11], carry = Mac(rr[11], (*arg1)[6], (*arg2)[5], carry)
+	rr[12], rr[13] = Mac(rr[12], (*arg1)[6], (*arg2)[6], carry)
+
+	copy(*out, f.MontReduce(rr))
 }
 
 func (f *FieldParams) Square(out, arg *[]uint64) {
@@ -179,7 +235,7 @@ func (f *FieldParams) Square(out, arg *[]uint64) {
 
 	for i := 0; i < f.Limbs-1; i++ {
 		for j := i + 1; j < f.Limbs; j++ {
-			rr[i+j], carry = mac(rr[i+j], (*arg)[i], (*arg)[j], carry)
+			rr[i+j], carry = Mac(rr[i+j], (*arg)[i], (*arg)[j], carry)
 		}
 		rr[i+f.Limbs] = carry
 		carry = 0
@@ -190,17 +246,17 @@ func (f *FieldParams) Square(out, arg *[]uint64) {
 		rr[i] = (rr[i] << 1) | rr[i-1]>>63
 	}
 
-	rr[0], carry = mac(0, (*arg)[0], (*arg)[0], 0)
-	rr[1], carry = adc(0, rr[1], carry)
+	rr[0], carry = Mac(0, (*arg)[0], (*arg)[0], 0)
+	rr[1], carry = Adc(0, rr[1], carry)
 	j := 2
 	for i := 1; i < f.Limbs; i++ {
-		rr[j], carry = mac(rr[j], (*arg)[i], (*arg)[i], carry)
+		rr[j], carry = Mac(rr[j], (*arg)[i], (*arg)[i], carry)
 		j++
-		rr[j], carry = adc(0, rr[j], carry)
+		rr[j], carry = Adc(0, rr[j], carry)
 		j++
 	}
 
-	copy(*out, f.montReduce(rr))
+	copy(*out, f.MontReduce(rr))
 }
 
 func (f *FieldParams) Neg(out, arg *[]uint64) {
@@ -210,7 +266,7 @@ func (f *FieldParams) Neg(out, arg *[]uint64) {
 	t := make([]uint64, f.Limbs)
 
 	for i := 0; i < f.Limbs; i++ {
-		t[i], borrow = sbb(f.Modulus[i], (*arg)[i], borrow)
+		t[i], borrow = Sbb(f.Modulus[i], (*arg)[i], borrow)
 		mask |= (*arg)[i]
 	}
 
@@ -231,7 +287,7 @@ func (f *FieldParams) FromBytes(out *[]uint64, arg *[]byte) {
 func (f *FieldParams) ToBytes(out *[]byte, arg *[]uint64) {
 	rr := make([]uint64, f.Limbs*2)
 	copy(rr[:f.Limbs], *arg)
-	t := f.montReduce(rr)
+	t := f.MontReduce(rr)
 	copy(*out, leUint64toLeBytes(t))
 }
 
@@ -248,7 +304,7 @@ func (f *FieldParams) Invert(wasInverted *int, out, arg *[]uint64) {
 	bigIntToLeUint64(&exp, pm2)
 	t := make([]uint64, f.Limbs)
 	z := make([]uint64, f.Limbs)
-	Pow(&t, *arg, exp, f, f)
+	Pow(&t, arg, &exp, f, f)
 	ff := new(Field).Init(f, f).SetRaw(*arg)
 	*wasInverted = ff.IsNonZeroI()
 	f.Selectznz(out, &z, &t, *wasInverted)
@@ -261,7 +317,7 @@ func (f *FieldParams) Sqrt(wasSquare *int, out, arg *[]uint64) {
 	c := make([]uint64, f.Limbs)
 	tv := make([]uint64, f.Limbs)
 
-	Pow(&z, *arg, f.SqrtParams.C3, f, f)
+	Pow(&z, arg, &f.SqrtParams.C3, f, f)
 	f.Square(&t, &z)
 	f.Mul(&t, &t, arg)
 	f.Mul(&z, &z, arg)
@@ -288,22 +344,99 @@ func (f *FieldParams) Sqrt(wasSquare *int, out, arg *[]uint64) {
 	f.Selectznz(out, out, &z, *wasSquare)
 }
 
-func (f *FieldParams) montReduce(r []uint64) []uint64 {
-	// Taken from Algorithm 14.32 in Handbook of Applied Cryptography
-	var carry, carry2, k uint64
-	out := make([]uint64, f.Limbs)
+func (f *FieldParams) MontReduce(r []uint64) []uint64 {
+	//// Taken from Algorithm 14.32 in Handbook of Applied Cryptography
+	//var carry, carry2, k uint64
+	//out := make([]uint64, f.Limbs)
+	//
+	//for i := 0; i < f.Limbs; i++ {
+	//	k = r[i] * f.ModulusNegInv
+	//	_, carry = Mac(r[i], k, f.Modulus[0], 0)
+	//	for j := 1; j < f.Limbs; j++ {
+	//		r[i+j], carry = Mac(r[i+j], k, f.Modulus[j], carry)
+	//	}
+	//	r[i+f.Limbs], carry2 = Adc(r[i+f.Limbs], carry2, carry)
+	//}
+	//copy(out, r[f.Limbs:])
+	//f.Sub(&out, &out, &f.Modulus)
+	//return out
 
-	for i := 0; i < f.Limbs; i++ {
-		k = r[i] * f.ModulusNegInv
-		_, carry = mac(r[i], k, f.Modulus[0], 0)
-		for j := 1; j < f.Limbs; j++ {
-			r[i+j], carry = mac(r[i+j], k, f.Modulus[j], carry)
-		}
-		r[i+f.Limbs], carry2 = adc(r[i+f.Limbs], carry2, carry)
-	}
-	copy(out, r[f.Limbs:])
-	f.Sub(&out, &out, &f.Modulus)
-	return out
+	// Taken from Algorithm 14.32 in Handbook of Applied Cryptography
+	var r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, carry, k uint64
+	rr := make([]uint64, f.Limbs)
+
+	k = r[0] * f.ModulusNegInv
+	_, carry = Mac(r[0], k, f.Modulus[0], 0)
+	r1, carry = Mac(r[1], k, f.Modulus[1], carry)
+	r2, carry = Mac(r[2], k, f.Modulus[2], carry)
+	r3, carry = Mac(r[3], k, f.Modulus[3], carry)
+	r4, carry = Mac(r[4], k, f.Modulus[4], carry)
+	r5, carry = Mac(r[5], k, f.Modulus[5], carry)
+	r6, carry = Mac(r[6], k, f.Modulus[6], carry)
+	r7, r8 = Adc(r[7], 0, carry)
+
+	k = r1 * f.ModulusNegInv
+	_, carry = Mac(r1, k, f.Modulus[0], 0)
+	r2, carry = Mac(r2, k, f.Modulus[1], carry)
+	r3, carry = Mac(r3, k, f.Modulus[2], carry)
+	r4, carry = Mac(r4, k, f.Modulus[3], carry)
+	r5, carry = Mac(r5, k, f.Modulus[4], carry)
+	r6, carry = Mac(r6, k, f.Modulus[5], carry)
+	r7, carry = Mac(r7, k, f.Modulus[6], carry)
+	r8, r9 = Adc(r8, r[8], carry)
+
+	k = r2 * f.ModulusNegInv
+	_, carry = Mac(r2, k, f.Modulus[0], 0)
+	r3, carry = Mac(r3, k, f.Modulus[1], carry)
+	r4, carry = Mac(r4, k, f.Modulus[2], carry)
+	r5, carry = Mac(r5, k, f.Modulus[3], carry)
+	r6, carry = Mac(r6, k, f.Modulus[4], carry)
+	r7, carry = Mac(r7, k, f.Modulus[5], carry)
+	r8, carry = Mac(r8, k, f.Modulus[6], carry)
+	r9, r10 = Adc(r9, r[9], carry)
+
+	k = r3 * f.ModulusNegInv
+	_, carry = Mac(r3, k, f.Modulus[0], 0)
+	r4, carry = Mac(r4, k, f.Modulus[1], carry)
+	r5, carry = Mac(r5, k, f.Modulus[2], carry)
+	r6, carry = Mac(r6, k, f.Modulus[3], carry)
+	r7, carry = Mac(r7, k, f.Modulus[4], carry)
+	r8, carry = Mac(r8, k, f.Modulus[5], carry)
+	r9, carry = Mac(r9, k, f.Modulus[6], carry)
+	r10, r11 = Adc(r10, r[10], carry)
+
+	k = r4 * f.ModulusNegInv
+	_, carry = Mac(r4, k, f.Modulus[0], 0)
+	r5, carry = Mac(r5, k, f.Modulus[1], carry)
+	r6, carry = Mac(r6, k, f.Modulus[2], carry)
+	r7, carry = Mac(r7, k, f.Modulus[3], carry)
+	r8, carry = Mac(r8, k, f.Modulus[4], carry)
+	r9, carry = Mac(r9, k, f.Modulus[5], carry)
+	r10, carry = Mac(r10, k, f.Modulus[6], carry)
+	r11, r12 = Adc(r11, r[11], carry)
+
+	k = r5 * f.ModulusNegInv
+	_, carry = Mac(r5, k, f.Modulus[0], 0)
+	r6, carry = Mac(r6, k, f.Modulus[1], carry)
+	r7, carry = Mac(r7, k, f.Modulus[2], carry)
+	r8, carry = Mac(r8, k, f.Modulus[3], carry)
+	r9, carry = Mac(r9, k, f.Modulus[4], carry)
+	r10, carry = Mac(r10, k, f.Modulus[5], carry)
+	r11, carry = Mac(r11, k, f.Modulus[6], carry)
+	r12, r13 = Adc(r12, r[12], carry)
+
+	k = r6 * f.ModulusNegInv
+	_, carry = Mac(r6, k, f.Modulus[0], 0)
+	rr[0], carry = Mac(r7, k, f.Modulus[1], carry)
+	rr[1], carry = Mac(r8, k, f.Modulus[2], carry)
+	rr[2], carry = Mac(r9, k, f.Modulus[3], carry)
+	rr[3], carry = Mac(r10, k, f.Modulus[4], carry)
+	rr[4], carry = Mac(r11, k, f.Modulus[5], carry)
+	rr[5], carry = Mac(r12, k, f.Modulus[6], carry)
+	rr[6], _ = Adc(r13, r[13], carry)
+
+	f.Sub(&rr, &rr, &f.Modulus)
+	return rr
 }
 
 // FieldArithmetic are the methods that can be done on a field.
@@ -434,6 +567,7 @@ func (f *Field) SetBigInt(input *big.Int) *Field {
 
 // Set copies all from the other field into this one
 func (f *Field) Set(a *Field) *Field {
+	f.Value = make([]uint64, a.Params.Limbs)
 	copy(f.Value, a.Value)
 	f.Arithmetic = a.Arithmetic
 	f.Params = a.Params
@@ -489,7 +623,7 @@ func (f *Field) IsOne() bool {
 // if x^((q - 1) / 2) is 0 or 1 in F
 func (f *Field) IsSquareI() int {
 	tmp := make([]uint64, f.Params.Limbs)
-	Pow(&tmp, f.Value, f.Params.SqrtParams.IsSquare, f.Params, f.Arithmetic)
+	Pow(&tmp, &f.Value, &f.Params.SqrtParams.IsSquare, f.Params, f.Arithmetic)
 	return EqualI(tmp, f.Params.R) | IsZeroArrayI(tmp)
 }
 
@@ -619,7 +753,31 @@ func (f *Field) Neg(input *Field) *Field {
 func (f *Field) Exp(base, exp *Field) *Field {
 	e := make([]uint64, f.Params.Limbs)
 	f.Arithmetic.FromMontgomery(&e, &exp.Value)
-	Pow(&f.Value, base.Value, e, f.Params, f.Arithmetic)
+	Pow(&f.Value, &base.Value, &e, f.Params, f.Arithmetic)
+	return f
+}
+
+// Shl shifts the field by the specified count
+func (f *Field) Shl(a *Field, count int) *Field {
+	if count >= a.Params.Limbs*8 {
+		return f.SetZero()
+	}
+	copy(f.Value, a.Value)
+	shiftNum := count / 8
+	rem := count % 8
+	for i := f.Params.Limbs - 1; i > shiftNum; i-- {
+		f.Value[i] = f.Value[i-shiftNum]
+	}
+	nz := IsNonZeroI(rem)
+	shr := CtSelect(0, 64-rem, nz)
+
+	for i := f.Params.Limbs - 1; i > 0; i-- {
+		limb := f.Value[i] << rem
+		hi := f.Value[i-1] >> shr
+		limb |= uint64(nz) & hi
+		f.Value[i] = limb
+	}
+	f.Value[0] <<= rem
 	return f
 }
 
@@ -642,7 +800,7 @@ func (f *Field) CSwap(other *Field, choice int) *Field {
 
 // Pow raises base^exp. The result is written to out.
 // Public only for convenience for some internal implementations.
-func Pow(out *[]uint64, base, exp []uint64, params *FieldParams, arithmetic FieldArithmetic) {
+func Pow(out, base, exp *[]uint64, params *FieldParams, arithmetic FieldArithmetic) {
 	res := make([]uint64, params.Limbs)
 	tmp := make([]uint64, params.Limbs)
 	copy(res, params.R)
@@ -650,8 +808,8 @@ func Pow(out *[]uint64, base, exp []uint64, params *FieldParams, arithmetic Fiel
 	for i := params.Limbs - 1; i >= 0; i-- {
 		for j := 63; j >= 0; j-- {
 			arithmetic.Square(&res, &res)
-			arithmetic.Mul(&tmp, &res, &base)
-			arithmetic.Selectznz(&res, &res, &tmp, int(exp[i]>>j)&1)
+			arithmetic.Mul(&tmp, &res, base)
+			arithmetic.Selectznz(&res, &res, &tmp, int((*exp)[i]>>j)&1)
 		}
 	}
 	copy(*out, res)
@@ -708,8 +866,8 @@ func bigIntToLeUint64(out *[]uint64, bi *big.Int) {
 	}
 }
 
-// mac Multiply and Accumulate - compute a + (b * c) + d, return the result and new carry.
-func mac(a, b, c, d uint64) (lo, hi uint64) {
+// Mac Multiply and Accumulate - compute a + (b * c) + d, return the result and new carry.
+func Mac(a, b, c, d uint64) (lo, hi uint64) {
 	hi, lo = bits.Mul64(b, c)
 	carry2, carry := bits.Add64(a, d, 0)
 	hi, _ = bits.Add64(hi, 0, carry)
@@ -719,8 +877,8 @@ func mac(a, b, c, d uint64) (lo, hi uint64) {
 	return lo, hi
 }
 
-// adc Add w/Carry.
-func adc(x, y, carry uint64) (sum, carryOut uint64) {
+// Adc Add w/Carry.
+func Adc(x, y, carry uint64) (sum, carryOut uint64) {
 	sum = x + y + carry
 	// The sum will overflow if both top bits are set (x & y) or if one of them
 	// is (x | y), and a carry from the lower place happened. If such a carry
@@ -731,8 +889,8 @@ func adc(x, y, carry uint64) (sum, carryOut uint64) {
 	return sum, carryOut
 }
 
-// sbb Subtract with borrow.
-func sbb(x, y, borrow uint64) (diff, borrowOut uint64) {
+// Sbb Subtract with borrow.
+func Sbb(x, y, borrow uint64) (diff, borrowOut uint64) {
 	diff = x - (y + borrow)
 	borrowOut = ((^x & y) | (^(x ^ y) & diff)) >> 63
 	return diff, borrowOut

@@ -1,4 +1,4 @@
-package ed448
+package fq
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	fqParams = internal.FieldParams{
+	fqParams = &internal.FieldParams{
 		Modulus: []uint64{
 			0x2378c292ab5844f3,
 			0x216cc2728dc58f55,
@@ -73,9 +73,18 @@ var (
 			},
 		},
 	}
-	one4th = internal.Field{
-		Params:     &fqParams,
-		Arithmetic: &fqParams,
+	sqrtExp = []uint64{
+		0x48de30a4aad6113d,
+		0x085b309ca37163d5,
+		0x7113b6d26bb58da4,
+		0xffffffffdf3288fa,
+		0xffffffffffffffff,
+		0xffffffffffffffff,
+		0x0fffffffffffffff,
+	}
+	one4th = &internal.Field{
+		Params:     fqParams,
+		Arithmetic: fqParams,
 		Value: []uint64{
 			0xcfc4ab375748160e,
 			0x94a6ad0ec8bca90e,
@@ -86,9 +95,9 @@ var (
 			0x3656fbc6dba69c9d,
 		},
 	}
-	oneHalf = internal.Field{
-		Params:     &fqParams,
-		Arithmetic: &fqParams,
+	oneHalf = &internal.Field{
+		Params:     fqParams,
+		Arithmetic: fqParams,
 		Value: []uint64{
 			0x2ca820fc26068e5d,
 			0xcf326895c48ce9e6,
@@ -105,8 +114,129 @@ type Fq struct {
 	Value *internal.Field
 }
 
+type ed448FqArithmetic struct{}
+
+func (ed448FqArithmetic) ToMontgomery(out, arg *[]uint64) {
+	o := *out
+	oo := (*MontgomeryDomainFieldElement)(o)
+	a := *arg
+	aa := (*NonMontgomeryDomainFieldElement)(a)
+	ToMontgomery(oo, aa)
+}
+
+func (ed448FqArithmetic) FromMontgomery(out, arg *[]uint64) {
+	o := *out
+	oo := (*NonMontgomeryDomainFieldElement)(o)
+	a := *arg
+	aa := (*MontgomeryDomainFieldElement)(a)
+	FromMontgomery(oo, aa)
+}
+
+func (ed448FqArithmetic) Neg(out, arg *[]uint64) {
+	o := *out
+	oo := (*MontgomeryDomainFieldElement)(o)
+	a := *arg
+	aa := (*MontgomeryDomainFieldElement)(a)
+	Opp(oo, aa)
+}
+
+func (ed448FqArithmetic) Square(out, arg *[]uint64) {
+	o := *out
+	oo := (*MontgomeryDomainFieldElement)(o)
+	a := *arg
+	aa := (*MontgomeryDomainFieldElement)(a)
+	Square(oo, aa)
+}
+
+func (ed448FqArithmetic) Mul(out, arg1, arg2 *[]uint64) {
+	o := *out
+	oo := (*MontgomeryDomainFieldElement)(o)
+	a := *arg1
+	aa := (*MontgomeryDomainFieldElement)(a)
+	b := *arg2
+	bb := (*MontgomeryDomainFieldElement)(b)
+	Mul(oo, aa, bb)
+}
+
+func (ed448FqArithmetic) Add(out, arg1, arg2 *[]uint64) {
+	o := *out
+	oo := (*MontgomeryDomainFieldElement)(o)
+	a := *arg1
+	aa := (*MontgomeryDomainFieldElement)(a)
+	b := *arg2
+	bb := (*MontgomeryDomainFieldElement)(b)
+	Add(oo, aa, bb)
+}
+
+func (ed448FqArithmetic) Sub(out, arg1, arg2 *[]uint64) {
+	o := *out
+	oo := (*MontgomeryDomainFieldElement)(o)
+	a := *arg1
+	aa := (*MontgomeryDomainFieldElement)(a)
+	b := *arg2
+	bb := (*MontgomeryDomainFieldElement)(b)
+	Sub(oo, aa, bb)
+}
+
+func (e *ed448FqArithmetic) Sqrt(wasSquare *int, out, arg *[]uint64) {
+	// Shank's method, as p = 3 (mod 4). This means
+	// exponentiate by (p+1)/4. This only works for elements
+	// that are actually quadratic residue,
+	// so check the result at the end.
+	var c, z [7]uint64
+	cc := c[:]
+	zz := z[:]
+	internal.Pow(&zz, arg, &sqrtExp, fqParams, e)
+
+	e.Square(&cc, &zz)
+	*wasSquare = internal.EqualI(cc, *arg)
+	e.Selectznz(out, out, &zz, *wasSquare)
+}
+
+func (e *ed448FqArithmetic) Invert(wasInverted *int, out, arg *[]uint64) {
+	// Exponentiate by p - 2
+	exp := []uint64{
+		0x2378c292ab5844f1,
+		0x216cc2728dc58f55,
+		0xc44edb49aed63690,
+		0xffffffff7cca23e9,
+		0xffffffffffffffff,
+		0xffffffffffffffff,
+		0x3fffffffffffffff,
+	}
+	internal.Pow(out, arg, &exp, fqParams, e)
+	*wasInverted = internal.IsNotZeroArrayI(*arg)
+	e.Selectznz(out, out, arg, *wasInverted)
+}
+
+func (ed448FqArithmetic) FromBytes(out *[]uint64, arg *[]byte) {
+	o := *out
+	oo := (*[7]uint64)(o)
+	a := *arg
+	aa := (*[56]byte)(a)
+	FromBytes(oo, aa)
+}
+
+func (ed448FqArithmetic) ToBytes(out *[]byte, arg *[]uint64) {
+	o := *out
+	oo := (*[56]byte)(o)
+	a := *arg
+	aa := (*[7]uint64)(a)
+	ToBytes(oo, aa)
+}
+
+func (ed448FqArithmetic) Selectznz(out, arg1, arg2 *[]uint64, choice int) {
+	o := *out
+	oo := (*[7]uint64)(o)
+	a := *arg1
+	aa := (*[7]uint64)(a)
+	b := *arg2
+	bb := (*[7]uint64)(b)
+	Selectznz(oo, uint1(choice), aa, bb)
+}
+
 func FqNew() *Fq {
-	value := new(internal.Field).Init(&fqParams, &fqParams)
+	value := new(internal.Field).Init(fqParams, &ed448FqArithmetic{})
 	return &Fq{value}
 }
 
@@ -178,16 +308,6 @@ func (f *Fq) Hash(input []byte) *Fq {
 	return f.SetBytesWide(&t)
 }
 
-func (f *Fq) toMontgomery(a *Fq) *Fq {
-	f.Value.Arithmetic.ToMontgomery(&f.Value.Value, &a.Value.Value)
-	return f
-}
-
-func (f *Fq) fromMontgomery(a *Fq) *Fq {
-	f.Value.Arithmetic.FromMontgomery(&f.Value.Value, &a.Value.Value)
-	return f
-}
-
 func (f *Fq) Neg(a *Fq) *Fq {
 	f.Value.Neg(a.Value)
 	return f
@@ -221,66 +341,34 @@ func (f *Fq) Sub(arg1, arg2 *Fq) *Fq {
 
 // Sqrt performs modular square root.
 func (f *Fq) Sqrt(a *Fq) (*Fq, int) {
-	// Shank's method, as p = 3 (mod 4). This means
-	// exponentiate by (p+1)/4. This only works for elements
-	// that are actually quadratic residue,
-	// so check the result at the end.
-	z := new(internal.Field).Init(f.Value.Params, f.Value.Arithmetic)
-	c := new(internal.Field).Init(f.Value.Params, f.Value.Arithmetic)
-	exp := new(internal.Field).Init(f.Value.Params, f.Value.Arithmetic)
-	copy(exp.Value, []uint64{
-		0x48de30a4aad6113d,
-		0x085b309ca37163d5,
-		0x7113b6d26bb58da4,
-		0xffffffffdf3288fa,
-		0xffffffffffffffff,
-		0xffffffffffffffff,
-		0x0fffffffffffffff,
-	})
-	z.Exp(a.Value, exp)
-
-	c.Square(z)
-	wasSquare := c.EqualI(a.Value)
-	f.Value.CMove(f.Value, z, wasSquare)
+	_, wasSquare := f.Value.SqrtI(a.Value)
 	return f, wasSquare
 }
 
 // Invert performs modular inverse.
 func (f *Fq) Invert(a *Fq) (*Fq, int) {
-	// Exponentiate by p - 2
-	exp := new(internal.Field).Init(f.Value.Params, f.Value.Arithmetic)
-	copy(exp.Value, []uint64{
-		0xfffffffffffffffd,
-		0xffffffffffffffff,
-		0xffffffffffffffff,
-		0xfffffffeffffffff,
-		0xffffffffffffffff,
-		0xffffffffffffffff,
-		0xffffffffffffffff,
-	})
-	f.Value.Exp(a.Value, exp)
-	wasInverted := a.IsNonZero()
-	f.Value.CMove(a.Value, f.Value, wasInverted)
+	_, wasInverted := f.Value.InvertI(a.Value)
 	return f, wasInverted
 }
 
 func (f *Fq) Halve(a *Fq) *Fq {
-	f.Value.Mul(a.Value, &oneHalf)
+	f.Value.Mul(a.Value, oneHalf)
 	return f
 }
 
 func (f *Fq) Div4(a *Fq) *Fq {
-	f.Value.Mul(a.Value, &one4th)
+	f.Value.Mul(a.Value, one4th)
 	return f
 }
 
 func (f *Fq) Mod4(a *Fq) *Fq {
-	f.fromMontgomery(a)
+	copy(f.Value.Value, a.Value.Limbs())
 	f.Value.Value[0] &= 3
 	for i := 1; i < f.Value.Params.Limbs; i++ {
 		f.Value.Value[i] = 0
 	}
-	return f.toMontgomery(f)
+	_, _ = f.Value.SetLimbs(f.Value.Value)
+	return f
 }
 
 func (f *Fq) ToRadix16() []byte {
@@ -316,9 +404,9 @@ func (f *Fq) SetBytes(arg *[57]byte) (*Fq, error) {
 // SetBytesWide takes 112 bytes as input and treats them as a 896-bit number.
 func (f *Fq) SetBytesWide(a *[114]byte) *Fq {
 	var err error
-	lo := new(internal.Field).Init(&fqParams, &fqParams)
-	hi := new(internal.Field).Init(&fqParams, &fqParams)
-	top := new(internal.Field).Init(&fqParams, &fqParams)
+	lo := new(internal.Field).Init(fqParams, fqParams)
+	hi := new(internal.Field).Init(fqParams, fqParams)
+	top := new(internal.Field).Init(fqParams, fqParams)
 
 	_, err = lo.SetBytes(a[:56])
 	if err != nil {
@@ -335,8 +423,8 @@ func (f *Fq) SetBytesWide(a *[114]byte) *Fq {
 	if err != nil {
 		return nil
 	}
-	rr := new(internal.Field).Init(&fqParams, &fqParams)
-	rr2 := new(internal.Field).Init(&fqParams, &fqParams)
+	rr := new(internal.Field).Init(fqParams, fqParams)
+	rr2 := new(internal.Field).Init(fqParams, fqParams)
 
 	rr.SetOne()
 	copy(rr2.Value, fqParams.R2)
