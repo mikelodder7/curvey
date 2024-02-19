@@ -47,9 +47,9 @@ func (e *TwistedExtensiblePoint) ToProjectiveNiels() *TwistedProjectiveNielsPoin
 	td := fp.FpNew().Mul(e.T1, e.T2)
 	return &TwistedProjectiveNielsPoint{
 		YplusX:  fp.FpNew().Add(e.X, e.Y),
-		YminusX: fp.FpNew().Sub(e.X, e.Y),
+		YminusX: fp.FpNew().Sub(e.Y, e.X),
 		Z:       fp.FpNew().Double(e.Z),
-		Td:      td.Mul(td, twoXTwistedD),
+		Td:      td.Mul(td, fp.TwoXTwistedD),
 	}
 }
 
@@ -61,6 +61,7 @@ func (e *TwistedExtensiblePoint) Double(arg *TwistedExtensiblePoint) *TwistedExt
 
 	d := fp.FpNew().Neg(a)
 	ee := fp.FpNew().Add(arg.X, arg.Y)
+	ee.Square(ee)
 	ee.Sub(ee, a)
 	ee.Sub(ee, b)
 
@@ -89,7 +90,7 @@ func (e *TwistedExtensiblePoint) AddExtended(arg1 *TwistedExtensiblePoint, arg2 
 	b := fp.FpNew().Mul(arg1.Y, arg2.X)
 	c := fp.FpNew().Mul(arg1.T1, arg1.T2)
 	c.Mul(c, arg2.T)
-	c.Mul(c, twistedD)
+	c.Mul(c, fp.TwistedD)
 	d := fp.FpNew().Mul(arg1.Z, arg2.Z)
 	e1 := fp.FpNew().Add(arg1.X, arg1.Y)
 	e2 := fp.FpNew().Add(arg2.X, arg2.Y)
@@ -113,7 +114,7 @@ func (e *TwistedExtensiblePoint) SubExtended(arg1 *TwistedExtensiblePoint, arg2 
 	b := fp.FpNew().Mul(arg1.Y, arg2.Y)
 	c := fp.FpNew().Mul(arg1.T1, arg1.T2)
 	c.Mul(c, arg2.T)
-	c.Mul(c, twistedD)
+	c.Mul(c, fp.TwistedD)
 	d := fp.FpNew().Mul(arg1.Z, arg2.Z)
 	e1 := fp.FpNew().Add(arg1.X, arg1.Y)
 	e2 := fp.FpNew().Sub(arg2.Y, arg2.X)

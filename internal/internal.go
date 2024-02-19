@@ -92,3 +92,24 @@ func CmpI(lhs, rhs []uint64) int {
 	// Make the result -1 for <, 0 for =, 1 for >
 	return int(gt) - int(lt)
 }
+
+func CmpBytesI(lhs, rhs []byte) int {
+	gt := 0
+	lt := 0
+	for i := len(lhs) - 1; i >= 0; i-- {
+		// convert to two numbers where
+		// the leading bits are zeros and hold no meaning
+		//  so rhs - fp actually means gt
+		// and fp - rhs actually means lt.
+		r := int(rhs[i])
+		l := int(lhs[i])
+
+		// Check the leading bit
+		// if negative then fp > rhs
+		// if positive then fp < rhs
+		gt |= (r - l) >> 32 & 1 &^ lt
+		lt |= (l - r) >> 32 & 1 &^ gt
+	}
+	// Make the result -1 for <, 0 for =, 1 for >
+	return gt - lt
+}

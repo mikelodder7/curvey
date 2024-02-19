@@ -24,10 +24,10 @@ func (t *TwistedExtendedPoint) SetIdentity() *TwistedExtendedPoint {
 }
 
 func (t *TwistedExtendedPoint) SetGenerator() *TwistedExtendedPoint {
-	t.X.Set(twistedBasePoint.X)
-	t.Y.Set(twistedBasePoint.Y)
-	t.Z.Set(twistedBasePoint.Z)
-	t.T.Set(twistedBasePoint.T)
+	t.X.SetRaw(&fp.TwistedBasePointX)
+	t.Y.SetRaw(&fp.TwistedBasePointY)
+	t.Z.SetRaw(&fp.TwistedBasePointZ)
+	t.T.SetRaw(&fp.TwistedBasePointT)
 	return t
 }
 
@@ -96,12 +96,10 @@ func (t *TwistedExtendedPoint) Isogeny(a *fp.Fp) *EdwardsPoint {
 	y2 := fp.FpNew().Square(affine.Y)
 
 	xNum := fp.FpNew().Double(xy)
-	xDen := fp.FpNew().Set(y2)
-	xDen.Sub(xDen, ax2)
+	xDen := fp.FpNew().Sub(y2, ax2)
 	_, _ = xDen.Invert(xDen)
-	yNum := fp.FpNew().Set(y2)
-	yNum.Add(yNum, ax2)
-	yDen := fp.FpNew().Double(one)
+	yNum := fp.FpNew().Add(y2, ax2)
+	yDen := fp.FpNew().Double(fp.One)
 	yDen.Sub(yDen, y2)
 	yDen.Sub(yDen, ax2)
 	_, _ = yDen.Invert(yDen)
@@ -118,7 +116,7 @@ func (t *TwistedExtendedPoint) Isogeny(a *fp.Fp) *EdwardsPoint {
 }
 
 func (t *TwistedExtendedPoint) ToUntwisted() *EdwardsPoint {
-	return t.Isogeny(minusOne)
+	return t.Isogeny(fp.MinusOne)
 }
 
 func (t *TwistedExtendedPoint) IsOnCurveI() int {
@@ -130,7 +128,7 @@ func (t *TwistedExtendedPoint) IsOnCurveI() int {
 	tt := fp.FpNew().Square(t.T)
 
 	lhs := fp.FpNew().Sub(yy, xx)
-	rhs := fp.FpNew().Mul(twistedD, tt)
+	rhs := fp.FpNew().Mul(fp.TwistedD, tt)
 	rhs.Add(rhs, zz)
 
 	return xy.EqualI(zt) & lhs.EqualI(rhs)

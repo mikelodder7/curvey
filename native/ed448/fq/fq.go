@@ -86,26 +86,26 @@ var (
 		Params:     fqParams,
 		Arithmetic: fqParams,
 		Value: []uint64{
-			0xcfc4ab375748160e,
-			0x94a6ad0ec8bca90e,
-			0xad3ee487a7fad19e,
-			0xd563c394eff143eb,
-			0x3bc2a3bd7cad3c2a,
-			0x141729a49275b4ac,
-			0x3656fbc6dba69c9d,
+			0xdc873d6d54a7bb0d,
+			0xde933d8d723a70aa,
+			0x3bb124b65129c96f,
+			0x000000008335dc16,
+			0x0000000000000000,
+			0x0000000000000000,
+			0x0000000000000000,
 		},
 	}
 	oneHalf = &internal.Field{
 		Params:     fqParams,
 		Arithmetic: fqParams,
 		Value: []uint64{
-			0x2ca820fc26068e5d,
-			0xcf326895c48ce9e6,
-			0x635992a860009b38,
-			0x5a3dcaf93803b1d9,
-			0x72dfa400d114a36b,
-			0x63429040b4ceb5bc,
-			0x346bc81445a1b1ed,
+			0xb90e7adaa94f761a,
+			0xbd267b1ae474e155,
+			0x7762496ca25392df,
+			0x00000001066bb82c,
+			0x0000000000000000,
+			0x0000004000000000,
+			0x0000001400000000,
 		},
 	}
 )
@@ -204,9 +204,10 @@ func (e *ed448FqArithmetic) Invert(wasInverted *int, out, arg *[]uint64) {
 		0xffffffffffffffff,
 		0x3fffffffffffffff,
 	}
-	internal.Pow(out, arg, &exp, fqParams, e)
+	tmp := make([]uint64, len(*out))
+	internal.Pow(&tmp, arg, &exp, fqParams, e)
 	*wasInverted = internal.IsNotZeroArrayI(*arg)
-	e.Selectznz(out, out, arg, *wasInverted)
+	e.Selectznz(out, out, &tmp, *wasInverted)
 }
 
 func (ed448FqArithmetic) FromBytes(out *[]uint64, arg *[]byte) {
@@ -215,14 +216,22 @@ func (ed448FqArithmetic) FromBytes(out *[]uint64, arg *[]byte) {
 	a := *arg
 	aa := (*[56]byte)(a)
 	FromBytes(oo, aa)
+	ooo := (*NonMontgomeryDomainFieldElement)(o)
+	oooo := (*MontgomeryDomainFieldElement)(o)
+	ToMontgomery(oooo, ooo)
 }
 
 func (ed448FqArithmetic) ToBytes(out *[]byte, arg *[]uint64) {
+	var tmp [7]uint64
 	o := *out
 	oo := (*[56]byte)(o)
 	a := *arg
-	aa := (*[7]uint64)(a)
-	ToBytes(oo, aa)
+
+	aaa := (*NonMontgomeryDomainFieldElement)(&tmp)
+	aaaa := (*MontgomeryDomainFieldElement)(a)
+
+	FromMontgomery(aaa, aaaa)
+	ToBytes(oo, &tmp)
 }
 
 func (ed448FqArithmetic) Selectznz(out, arg1, arg2 *[]uint64, choice int) {
@@ -302,7 +311,7 @@ func (f *Fq) Random(reader io.Reader) (*Fq, error) {
 
 func (f *Fq) Hash(input []byte) *Fq {
 	dst := []byte("edwards448_XOF:SHAKE256_RO_")
-	xof := native.ExpandMsgXof(native.EllipticPointHasherShake256(), input, dst, 88)
+	xof := native.ExpandMsgXof(native.EllipticPointHasherShake256(), input, dst, 84)
 	var t [114]byte
 	copy(t[:], xof[:])
 	return f.SetBytesWide(&t)
@@ -357,7 +366,11 @@ func (f *Fq) Halve(a *Fq) *Fq {
 }
 
 func (f *Fq) Div4(a *Fq) *Fq {
-	f.Value.Mul(a.Value, one4th)
+	copy(f.Value.Value, a.Value.Value)
+	for i := 0; i < f.Value.Params.Limbs-1; i++ {
+		f.Value.Value[i] = (f.Value.Value[i+1] << 62) | (f.Value.Value[i] >> 2)
+	}
+	f.Value.Value[f.Value.Params.Limbs-1] = f.Value.Value[f.Value.Params.Limbs-1] >> 2
 	return f
 }
 
@@ -371,14 +384,22 @@ func (f *Fq) Mod4(a *Fq) *Fq {
 	return f
 }
 
-func (f *Fq) ToRadix16() []byte {
-	bytes := f.Value.Bytes()
-	output := make([]byte, 113)
+func (f *Fq) ToRadix16() []int8 {
+	output := make([]int8, 113)
 
 	// radix-16
-	for i := 0; i < 56; i++ {
-		output[2*i] = bytes[i] & 0xf
-		output[2*i+1] = (bytes[i] >> 4) & 0xf
+	k := 0
+	for i := 0; i < f.Value.Params.Limbs; i++ {
+		val := f.Value.Value[i]
+		for j := 0; j < 8; j++ {
+			loNib := int8(val & 0x0F)
+			val >>= 4
+			hiNib := int8(val & 0x0F)
+			val >>= 4
+			output[k] = loNib
+			output[k+1] = hiNib
+			k += 2
+		}
 	}
 	// re-center co-efficients to be between [-8, 8)
 	for i := 0; i < 112; i++ {

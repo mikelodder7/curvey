@@ -40,6 +40,9 @@ var (
 
 	ristretto25519Initonce sync.Once
 	ristretto25519         Curve
+
+	ed448Initonce sync.Once
+	ed448Curve    Curve
 )
 
 const (
@@ -52,6 +55,7 @@ const (
 	ED25519Name        = "ed25519"
 	PallasName         = "pallas"
 	Ristretto25519Name = "ristretto25519"
+	ED448Name          = "ed448"
 )
 
 // Scalar represents an element of the scalar field \mathbb{F}_q
@@ -395,12 +399,16 @@ func (c *Curve) ToEllipticCurve() (elliptic.Curve, error) {
 		return nil, err
 	case P256Name:
 		return NistP256Curve(), nil
+	case P384Name:
+		return NistP384Curve(), nil
 	case ED25519Name:
 		return nil, err
 	case PallasName:
 		return nil, err
 	case Ristretto25519Name:
 		return nil, err
+	case ED448Name:
+		return Edwards448Curve(), err
 	default:
 		return nil, err
 	}
@@ -493,6 +501,8 @@ func GetCurveByName(name string) *Curve {
 		return PALLAS()
 	case Ristretto25519Name:
 		return Ristretto25519()
+	case ED448Name:
+		return ED448()
 	default:
 		return nil
 	}
@@ -640,6 +650,19 @@ func ristrettoInit() {
 		Scalar: new(ScalarRistretto25519).Zero(),
 		Point:  new(PointRistretto25519).Identity(),
 		Name:   Ristretto25519Name,
+	}
+}
+
+func ED448() *Curve {
+	ed448Initonce.Do(ed448Init)
+	return &ed448Curve
+}
+
+func ed448Init() {
+	ed448Curve = Curve{
+		Scalar: new(ScalarEd448).Zero(),
+		Point:  new(PointEd448).Identity(),
+		Name:   ED448Name,
 	}
 }
 

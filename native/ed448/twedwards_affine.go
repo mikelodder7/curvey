@@ -26,7 +26,7 @@ func (t *TwistedAffinePoint) IsOnCurve() bool {
 	lhs := fp.FpNew().Sub(y, x)
 	rhs := fp.FpNew().SetOne()
 	rhs2 := fp.FpNew().Mul(x, y)
-	rhs2.Mul(rhs2, twistedD)
+	rhs2.Mul(rhs2, fp.TwistedD)
 	rhs.Add(rhs, rhs2)
 	return lhs.EqualI(rhs) == 1
 }
@@ -43,13 +43,13 @@ func (t *TwistedAffinePoint) Add(arg1, arg2 *TwistedAffinePoint) *TwistedAffineP
 	xy := fp.FpNew().Mul(arg1.X, arg2.Y)
 	yx := fp.FpNew().Mul(arg1.Y, arg2.X)
 	d := fp.FpNew().Mul(xx, yy)
-	d.Mul(d, twistedD)
+	d.Mul(d, fp.TwistedD)
 
 	yNum := fp.FpNew().Add(xx, yy)
-	yDen := fp.FpNew().Sub(one, d)
+	yDen := fp.FpNew().Sub(fp.One, d)
 
 	xNum := fp.FpNew().Add(xy, yx)
-	xDen := fp.FpNew().Add(one, d)
+	xDen := fp.FpNew().Add(fp.One, d)
 
 	t.X, _ = yDen.Invert(yDen)
 	t.Y, _ = xDen.Invert(xDen)

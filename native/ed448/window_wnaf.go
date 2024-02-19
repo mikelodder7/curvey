@@ -18,7 +18,7 @@ func FromTwistedExtendedPoint(t *TwistedExtendedPoint) LookupTable {
 // Select point from lookup table in constant time
 func (t LookupTable) Select(index uint32) *TwistedProjectiveNielsPoint {
 	idx := int(index)
-	result := TwistedProjectiveNielsPointNew()
+	result := TwistedProjectiveNielsPointNew().SetIdentity()
 	for i := 1; i < 9; i++ {
 		result.CMove(result, t[i-1], internal.IsZeroI(i-idx))
 	}

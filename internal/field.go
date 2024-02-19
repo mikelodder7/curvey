@@ -505,7 +505,18 @@ func (f *Field) SetLimbs(input []uint64) (*Field, error) {
 	if len(input) != f.Params.Limbs {
 		return nil, fmt.Errorf("invalid length")
 	}
-	f.Arithmetic.ToMontgomery(&f.Value, &input)
+	bi := new(big.Int).SetUint64(input[f.Params.Limbs-1])
+	for i := f.Params.Limbs - 2; i >= 0; i-- {
+		bi.Lsh(bi, 64)
+		bi.Add(bi, new(big.Int).SetUint64(input[i]))
+	}
+	bi.Mod(bi, f.Params.BiModulus)
+	var bb [57]byte
+	bi.FillBytes(bb[:])
+	copy(bb[:], ReverseBytes(bb[:]))
+	bbb := bb[:]
+	f.Arithmetic.FromBytes(&f.Value, &bbb)
+	f.Arithmetic.ToMontgomery(&f.Value, &f.Value)
 	return f, nil
 }
 
